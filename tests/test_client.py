@@ -1,10 +1,10 @@
 
+from src.praxedo_ws.soap_client import PraxedoSoapClient
+
+
 from enum import Enum, unique
 from pprint import pprint
 
-from praxedo_ws.soap_client import *
-
-# local imports
 
 
 @unique
