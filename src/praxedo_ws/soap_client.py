@@ -53,8 +53,6 @@ class PraxedoSoapClient:
         self.bizEvt_attach_transport    : Transport
         self.bizEvt_attach_client       : Client # zeep client for business event attachement management
         
-        
-        
         self.searchAbort          = False
     
     def open_connection(self):
@@ -119,13 +117,13 @@ class PraxedoSoapClient:
         #   file.write(singleBisEvtAttach.content)
     
     
-    GET_BIZEVT_RESULT_CODE =   {
-                                0: 'SUCCESS',
-                                1: 'INTERNAL ERROR',
-                                50: 'UNCOMPLETE REQUEST',
-                                51 :'TOO MANY EVENT REQUESTED',
-                                157:'UNKNOWN CONTRACT'
-                            }
+    class GET_BIZEVT_RESULT_CODE(Enum) :
+        SUCCESS                     =  0
+        INTERNAL_ERROR              =  1
+        UNCOMPLETE_REQUEST          = 50                   
+        TOO_MANY_EVENT_REQUESTED    = 51
+        UNKNOWN_CONTRACT            = 157
+                            
     
     
     """
@@ -192,6 +190,12 @@ class PraxedoSoapClient:
             warnings.simplefilter('ignore')
             get_evt_result = self.bizEvt_client.service.getEvents(evt_id_list,populate_opt_arg)
 
+        result_code = PraxedoSoapClient.GET_BIZEVT_RESULT_CODE(get_evt_result.resultCode) 
+        
+        #match result_code:
+            
+            
+               
         return get_evt_result
     
     
