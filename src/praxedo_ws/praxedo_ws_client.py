@@ -38,30 +38,46 @@ def get_url_content(arg_url):
 
 class PraxedoWSClient:
      
-    class BasicAuthCred(NamedTuple):
+    class WsCredential(NamedTuple):
         usr : str
         psw : str
      
-    def __init__(self):
+    def __init__(self, biz_evt_wsdl_url:str, biz_attach_wsdl_url:str, ws_credential_arg : WsCredential):
     
-        self.biz_evt_client         : Client # zeep client
-        self.biz_evt_attach_client  : Client
+        self.biz_evt_wsdl_url       = biz_evt_wsdl_url
+        self.biz_attach_wsdl_url    = biz_attach_wsdl_url
+        self.ws_credential          = ws_credential_arg
         
-        self.http_session         = Session()
+        self.http_session               : Session
+        self.bizEvt_tranport            : Transport
+        self.bizEvt_client              : Client # zeep client for business events management
+        self.bizEvt_attach_transport    : Transport
+        self.bizEvt_attach_client       : Client # zeep client for business event attachement management
+        
+        
         self.http_session.verify  = False
         self.searchAbort          = False
     
-    def connectToEndPoint(self,biz_evt_wsdl_url: str, biz_evt_attach_wsdl_url:str, ws_usr_cred_arg : BasicAuthCred):
+    def open_connection(self):
         """ Connect to the the service endpoint using the Zeep lib
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             
-            self.http_session.auth = HTTPBasicAuth(ws_usr_cred_arg.usr, ws_usr_cred_arg.psw)  # Qual
+            # authentication
+            self.http_session = Session()
+            self.http_session.auth = HTTPBasicAuth(self.ws_credential.usr, self.ws_credential.psw)  # Qual
                 
-            self.biz_evt_client         = Client(wsdl = biz_evt_wsdl_url,           transport=Transport(session=self.http_session))
-            self.biz_evt_attach_client  = Client(wsdl = biz_evt_attach_wsdl_url,    transport=Transport(session=self.http_session))
+            self.bizEvt_tranport            = Transport(session = self.http_session)
+            self.bizEvt_attach_transport    = Transport(session = self.http_session)
+                
+            self.bizEvt_client         = Client(wsdl = self.biz_evt_wsdl_url,    transport = self.bizEvt_tranport)
+            self.bizEvt_attach_client  = Client(wsdl = self.biz_attach_wsdl_url, transport = self.bizEvt_attach_transport)
     
+    
+    def close_connection(self):
+        self.http_session.close()
+        
     
     class DATE_CONSTRAINT(Enum):
         CREATION        =   'creationDate'
@@ -82,7 +98,7 @@ class PraxedoWSClient:
     
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            list_attach_result = self.biz_evt_attach_client.service.listAttachments(arg_evt_ext_id)
+            list_attach_result = self.bizEvt_attach_client.service.listAttachments(arg_evt_ext_id)
         
         return list_attach_result.entities
         
@@ -92,7 +108,7 @@ class PraxedoWSClient:
         
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            get_attach_content_result= self.biz_evt_attach_client.service.getAttachmentContent(arg_evt_attach_id)
+            get_attach_content_result= self.bizEvt_attach_client.service.getAttachmentContent(arg_evt_attach_id)
     
     
         return get_attach_content_result.content
@@ -103,7 +119,7 @@ class PraxedoWSClient:
         #   file.write(singleBisEvtAttach.content)
     
     
-    WS_GETEVENT_RESULT_CODE =   {
+    GET_BIZEVT_RESULT_CODE =   {
                                 0: 'SUCCESS',
                                 1: 'INTERNAL ERROR',
                                 50: 'UNCOMPLETE REQUEST',
@@ -163,16 +179,16 @@ class PraxedoWSClient:
     
     
     
-    def get_bizEvt(self,arg_evt_id_list, arg_populate_opt = GET_BIZEVT_POPUL_OPT_SET.BASIC):
+    def get_bizEvt(self,evt_id_list : list[str], arg_populate_opt = GET_BIZEVT_POPUL_OPT_SET.BASIC):
 
-        evt_id_list_arg = arg_evt_id_list # [f"{arg_evt_id_str}"]
+        # evt_id_list_arg = evt_id_list # [f"{arg_evt_id_str}"]
         
         populate_opt_arg =  arg_populate_opt.value
         
         print('Calling the getEvents service ...')
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            get_evt_result = self.biz_evt_client.service.getEvents(evt_id_list_arg,populate_opt_arg)
+            get_evt_result = self.bizEvt_client.service.getEvents(evt_id_list,populate_opt_arg)
 
         return get_evt_result
     
@@ -275,7 +291,7 @@ class PraxedoWSClient:
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                
-                search_results = self.biz_evt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,populate_opt_arg)
+                search_results = self.bizEvt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,populate_opt_arg)
             
             return_code = PraxedoWSClient.SRCH_BIZEVT_RET_CODE(search_results.resultCode)
             match return_code : 
