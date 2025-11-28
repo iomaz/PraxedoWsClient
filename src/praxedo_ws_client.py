@@ -1,3 +1,4 @@
+from typing import NamedTuple
 import time
 import requests
 from requests import Session
@@ -5,40 +6,63 @@ from requests.auth import HTTPBasicAuth
 from zeep import Client
 from zeep.transports import Transport
 from datetime import datetime
-from enum import Enum, unique
+from enum import Enum
 import warnings
-from concurrent.futures import ThreadPoolExecutor
-
-
-QUAL_WS_USER = {
-                    'usr':'qua.webservice',
-                    'psw':'#Qua.webservice-1/*'
-                }
-
-PROD_WS_USER = {
-                    'usr':'WSDEM',
-                    'psw':'WsdemWsdem2358'
-                }
-
-PROD_WS_USER2 = {
-                    'usr':'WSDEM2',
-                    'psw':'WsdemWsdem2358'
-                }
 
 
 
-class PraxedoWS:
+def get_url_content(arg_url):
+    with warnings.catch_warnings():
+        MAX_RETRY = 2
+        retryCount = 0
+        warnings.simplefilter('ignore')
+        while retryCount <= 1 :   
+            req_result = requests.get(arg_url,verify=False)
+            retry = False
+            match req_result.status_code:
+                case 200 : break # fine
+                case _ if req_result.status_code != 429 :
+                    print(f"Failed to download !: ErrCode:{req_result.status_code} Reason={req_result.reason} (url)={arg_url[-38:]}")
+                    return None
+                case 429 : # too many requests
+                    retryCount += 1
+                    if retryCount >= MAX_RETRY : 
+                        print('Max retry errors : return None...')
+                        return None
+                    else : 
+                        print('get_url_content():Err 429 - too many requests- wait and retry...')
+                        time.sleep(5)
+        
+    return req_result.content
+
+
+class PraxedoWSClient:
+     
+    class BasicAuthCred(NamedTuple):
+        usr : str
+        psw : str
+     
+    def __init__(self):
     
-    WS_BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
-    WS_BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
+        self.biz_evt_client         : Client # zeep client
+        self.biz_evt_attach_client  : Client
+        
+        self.http_session         = Session()
+        self.http_session.verify  = False
+        self.searchAbort          = False
     
-    zeep_ws_session : Client # zeep client
-    zeep_ws_session2 : Client
+    def connectToEndPoint(self,biz_evt_wsdl_url: str, biz_evt_attach_wsdl_url:str, ws_usr_cred_arg : BasicAuthCred):
+        """ Connect to the the service endpoint using the Zeep lib
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            
+            self.http_session.auth = HTTPBasicAuth(ws_usr_cred_arg.usr, ws_usr_cred_arg.psw)  # Qual
+                
+            self.biz_evt_client         = Client(wsdl = biz_evt_wsdl_url,           transport=Transport(session=self.http_session))
+            self.biz_evt_attach_client  = Client(wsdl = biz_evt_attach_wsdl_url,    transport=Transport(session=self.http_session))
     
-    zeepAttachServices : Client
     
-    WS_SEARCH_MAX_RESULTS_PER_PAGE = 50  #This is the maximum allowed by Praxedo
-
     class DATE_CONSTRAINT(Enum):
         CREATION        =   'creationDate'
         COMMUNICA       =   'communicationDate'
@@ -50,80 +74,25 @@ class PraxedoWS:
         COMPLETION      =   'completionDate'
         VALIDATION      =   'validationDate'
         LASTMODIFI      =   'lastModificationDate'
-
-    @unique
-    class EVT_STATUS(Enum):
-        NEW             = 0
-        QUALIFIED       = 1
-        PRE_SCHEDULED   = 2
-        SCHEDULED       = 3
-        IN_PROGRESS     = 4
-        COMPLETED       = 5
-        VALIDATED       = 6
-        CANCELLED       = 7
-    
-
-    #organisation ID
-    ORG_ID = {
-                1000:   'MNE',
-                1008:   'MCE',
-                1009:   'MBR',
-                1010:   'MSU'
-            }
-
     
     
-    session = Session()
-    session2 = Session()
-    session.verify = False
-    session2.verify = False
     
-    
-    searchAbort = False
-    
-    @classmethod
-    def connectToEndPoint(cls,aEndPointCodeStr):
-        """ Connect to the the service endpoint using the Zeep lib
-        Args:
-            aEndPointStr (_type_): _description_
-        """
-        print(f'connectToEndPoint() : EndPoint = {aEndPointCodeStr}')
-        
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            
-            if aEndPointCodeStr == 'QUAL':
-                #GUI.printOutputTrace('connectToEndPoint()... Qual env. selected')
-                cls.session.auth = HTTPBasicAuth(QUAL_WS_USER["usr"], QUAL_WS_USER["psw"])  # Qual
-                
-            if aEndPointCodeStr == 'PROD':
-                #GUI.printOutputTrace('connectToEndPoint()... Prod env. selected')
-                cls.session.auth  = HTTPBasicAuth(PROD_WS_USER["usr"], PROD_WS_USER["psw"]) # Prod user 1
-                cls.session2.auth = HTTPBasicAuth(PROD_WS_USER2["usr"], PROD_WS_USER2["psw"]) # Prod user 2
-                cls.zeep_ws_session2  = Client(wsdl=cls.WS_BIZ_EVT_WSDL_URL, transport=Transport(session=cls.session2))
-
-            cls.zeep_ws_session   = Client(wsdl=cls.WS_BIZ_EVT_WSDL_URL, transport=Transport(session=cls.session))
-            cls.zeepAttachServices = Client(wsdl=cls.WS_BIZ_EVT_ATTACH_WSDL_URL, transport=Transport(session=cls.session))
-    
-    
-    @classmethod
-    def ws_list_attachments(cls,arg_evt_ext_id):
+    def list_attachments(self,arg_evt_ext_id):
         # print('ws_list_attachments()...')
     
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            list_attach_result = cls.zeepAttachServices.service.listAttachments(arg_evt_ext_id)
+            list_attach_result = self.biz_evt_attach_client.service.listAttachments(arg_evt_ext_id)
         
         return list_attach_result.entities
         
     
-    @classmethod
-    def ws_getAttachmentContent(cls,arg_evt_attach_id):
+    def get_attachement_content(self,arg_evt_attach_id):
         #print('ws_getAttachmentContent()...')
         
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            get_attach_content_result= cls.zeepAttachServices.service.getAttachmentContent(arg_evt_attach_id)
+            get_attach_content_result= self.biz_evt_attach_client.service.getAttachmentContent(arg_evt_attach_id)
     
     
         return get_attach_content_result.content
@@ -169,7 +138,7 @@ class PraxedoWS:
         """
     
     
-    class WS_GET_EVTS_POPUL_OPT_SET(Enum):
+    class GET_BIZEVT_POPUL_OPT_SET(Enum):
 
         class OPTIONS(Enum):
             prefix = 'businessEvent.populate.'
@@ -194,8 +163,7 @@ class PraxedoWS:
     
     
     
-    @classmethod
-    def ws_get_evt(cls,arg_evt_id_list, arg_populate_opt = WS_GET_EVTS_POPUL_OPT_SET.BASIC):
+    def get_bizEvt(self,arg_evt_id_list, arg_populate_opt = GET_BIZEVT_POPUL_OPT_SET.BASIC):
 
         evt_id_list_arg = arg_evt_id_list # [f"{arg_evt_id_str}"]
         
@@ -204,12 +172,12 @@ class PraxedoWS:
         print('Calling the getEvents service ...')
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            get_evt_result = cls.zeep_ws_session.service.getEvents(evt_id_list_arg,populate_opt_arg)
+            get_evt_result = self.biz_evt_client.service.getEvents(evt_id_list_arg,populate_opt_arg)
 
         return get_evt_result
     
     
-    class WS_SRCH_EVTS_POPUL_OPT_SET(Enum):
+    class SRCH_BIZEVT_POPUL_OPT_SET(Enum):
 
         """
         **** 20x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#searchevents
@@ -256,7 +224,7 @@ class PraxedoWS:
                                   ]
     
     
-    class WS_SRCH_EVT_RET_CODE(Enum):    
+    class SRCH_BIZEVT_RET_CODE(Enum):    
         SUCESS                  =  0 
         INTERNAL_ERROR          =  1
         MISSING_REQUEST_PARAM   =  151
@@ -268,14 +236,17 @@ class PraxedoWS:
         PARTIAL_RESULT          =  200
                                  
     
+    def abort_search_bizEvts(self):
+        self.searchAbort = True
     
-    @classmethod
-    def ws_search_evts(cls, arg_start_date:datetime, arg_stop_date:datetime,
+    
+    def search_bizEvts(self, arg_start_date:datetime, arg_stop_date:datetime,
                             arg_date_constraint:DATE_CONSTRAINT, 
-                            arg_populate_opt=WS_SRCH_EVTS_POPUL_OPT_SET.BASIC,
-                            arg_zeep_session_no = 1):
+                            arg_populate_opt=SRCH_BIZEVT_POPUL_OPT_SET.BASIC):
         
-        print(f'ws_serch_evts() sessionNo={arg_zeep_session_no}')
+        
+        MAX_RESULTS_PER_PAGE = 50  #This is the actual maximum limit allowed by Praxedo
+        print(f'ws_serch_evts()')
         
         requestArg =  {
                             "typeConstraint"   :   [],
@@ -301,36 +272,29 @@ class PraxedoWS:
         # iterate over a multi-page response when applicable
         while True:
             
-            print(f'\r s({arg_zeep_session_no}) ws_search_evts: querying page:{resp_page_nbr}',end='',flush=True)
-            #print(f's({arg_zeep_session_no}) ws_search_evts: querying page:{resp_page_nbr}')
-            
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
-                #current_session = None
-                match arg_zeep_session_no:
-                    case 1 : current_session = cls.zeep_ws_session
-                    case 2:  current_session = cls.zeep_ws_session2
-                search_results = current_session.service.searchEvents(requestArg,cls.WS_SEARCH_MAX_RESULTS_PER_PAGE,first_result_idx,populate_opt_arg)
+               
+                search_results = self.biz_evt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,populate_opt_arg)
             
-            return_code = cls.WS_SRCH_EVT_RET_CODE(search_results.resultCode)
+            return_code = PraxedoWSClient.SRCH_BIZEVT_RET_CODE(search_results.resultCode)
             match return_code : 
-                case cls.WS_SRCH_EVT_RET_CODE.SUCESS :
+                case PraxedoWSClient.SRCH_BIZEVT_RET_CODE.SUCESS :
                     total_entities_results += search_results.entities
                     search_results.entities = total_entities_results
                     break
                 
-                case cls.WS_SRCH_EVT_RET_CODE.PARTIAL_RESULT :
-                    if not cls.searchAbort :
-                        time.sleep(1) # intended to give the oportunity to the system to switch to another thread... 
+                case PraxedoWSClient.SRCH_BIZEVT_RET_CODE.PARTIAL_RESULT :
+                    if not self.searchAbort :
                         resp_page_nbr += 1
-                        first_result_idx += cls.WS_SEARCH_MAX_RESULTS_PER_PAGE # incrementing the first index for a multipage result 
+                        first_result_idx += MAX_RESULTS_PER_PAGE # incrementing the first index for a multipage result 
                         total_entities_results += search_results.entities
                         continue    
                     else :
                         print('ws_searchEvents aborted !')
                         total_entities_results += search_results.entities
                         search_results.entities = total_entities_results
-                        cls.searchAbort = False
+                        self.searchAbort = False
                         break
                 
                 case _: # in case of an error
@@ -339,47 +303,6 @@ class PraxedoWS:
 
         return search_results
     
-    @classmethod
-    def parallel_ws_search_evts(cls,argStartDate, argStopDate, arg_date_constraint, arg_populate_opt):
-        
-        print('parallel_ws_search_evts() begin')
-        
-        time_shift = (argStopDate - argStartDate) / 2
-        period_split = [(argStartDate,argStartDate + time_shift),(argStartDate + time_shift,argStopDate)]
-        
-        print(period_split)
-        
-        search_args = [(period[0], period[1], arg_date_constraint, arg_populate_opt,idx+1)  for idx, period in enumerate(period_split)]
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            results = list(executor.map(lambda p: PraxedoWS.ws_search_evts(*p),search_args))
-        
-        results[0].entities.extend(results[1].entities)
-        
-        return results[0]
     
     
-    @classmethod
-    def get_url_content(cls,arg_url):
-        with warnings.catch_warnings():
-            MAX_RETRY = 1
-            retryCount = 0
-            warnings.simplefilter('ignore')
-            while retryCount <= 1 :   
-                req_result = requests.get(arg_url,verify=False)
-                retry = False
-                match req_result.status_code:
-                    case 200 : break # fine
-                    case _ if req_result.status_code != 429 :
-                        print(f"Failed to download !: ErrCode:{req_result.status_code} Reason={req_result.reason} (url)={arg_url[-38:]}")
-                        return None
-                    case 429 : # too many requests
-                        retryCount += 1
-                        if retryCount >= 2 : 
-                            print('two many 429 errors : return None...')
-                            return None
-                        else : 
-                            print('get_url_content():Err 429 - too many requests- Retry...')
-                            time.sleep(5)
-          
-        return req_result.content
     
