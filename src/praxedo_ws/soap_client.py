@@ -79,7 +79,7 @@ class PraxedoSoapClient:
         self.http_session.close()
         
     
-    class DATE_CONSTRAINT(Enum):
+    class DATE_CONSTRAINT(NamedTuple):
         CREATION        =   'creationDate'
         COMMUNICA       =   'communicationDate'
         APPOINT         =   'appointmentDate'
@@ -129,6 +129,7 @@ class PraxedoSoapClient:
     
     
     """
+    #region
         **** 21x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#getevents
         businessEvent.populate.coreData        
         businessEvent.populate.coreData.referentialData
@@ -150,7 +151,8 @@ class PraxedoSoapClient:
         businessEvent.populate.annotations.withReportFields
         businessEvent.populate.annotations.withCode
         extendedLastModificationDate
-        businessEvent.feature.status.cancelled 
+        businessEvent.feature.status.cancelled
+    #endregion
         """
     
     
@@ -196,6 +198,7 @@ class PraxedoSoapClient:
     class SRCH_BIZEVT_POPUL_OPT_SET(NamedTuple):
 
         """
+        #region
         **** 20x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#searchevents
         businessEvent.populate.coreData        
         businessEvent.populate.coreData.referentialData
@@ -216,7 +219,8 @@ class PraxedoSoapClient:
         businessEvent.populate.annotations
         businessEvent.populate.annotations.withReportFields
         businessEvent.populate.annotations.withCode
-        extendedLastModificationDate 
+        extendedLastModificationDate
+        #endregion
         """
         class OPTIONS(NamedTuple):
             prefix = 'businessEvent.populate.'
@@ -262,12 +266,12 @@ class PraxedoSoapClient:
         
         
         MAX_RESULTS_PER_PAGE = 50  #This is the actual maximum limit allowed by Praxedo
-        print(f'ws_serch_evts()')
+        print(f'search_bizEvts:')
         
         requestArg =  {
                             "typeConstraint"   :   [],
                             "dateConstraints"  :   [
-                                        {"name": arg_date_constraint.value,
+                                        {"name": arg_date_constraint,
                                         "dateRange":[arg_start_date.isoformat(),arg_stop_date.isoformat()] 
                                         }
                                                     ],
