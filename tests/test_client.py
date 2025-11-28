@@ -4,7 +4,7 @@ from pprint import pprint
 
 
 # local imports
-from src.praxedo_ws.praxedo_ws_client import *
+from praxedo_ws.ws_client import *
 
 @unique
 class EVT_STATUS(Enum):

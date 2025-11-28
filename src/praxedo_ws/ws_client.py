@@ -10,7 +10,6 @@ from enum import Enum
 import warnings
 
 
-
 def get_url_content(arg_url):
     with warnings.catch_warnings():
         MAX_RETRY = 2
