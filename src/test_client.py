@@ -1,10 +1,8 @@
-
-from src.praxedo_ws.soap_client import PraxedoSoapClient
-
-
 from enum import Enum, unique
 from pprint import pprint
 
+# local imports
+from praxedo_ws.soap_client import PraxedoSoapClient
 
 
 @unique
@@ -25,22 +23,13 @@ PRAX_BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/B
 
 # Praxedo Qual credential
 QUAL_PRAX_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
-                                              psw='#Qua.webservice-1/*')
+                                                psw='#Qua.webservice-1/*')
 
-QUAL_WS_USER = {
-                    'usr':'qua.webservice',
-                    'psw':'#Qua.webservice-1/*'
-                }
+PROD_PRAX_AUTH = PraxedoSoapClient.WsCredential(usr='WSDEM',
+                                                psw='WsdemWsdem2358')
 
-PROD_WS_USER = {
-                    'usr':'WSDEM',
-                    'psw':'WsdemWsdem2358'
-                }
-
-PROD_WS_USER2 = {
-                    'usr':'WSDEM2',
-                    'psw':'WsdemWsdem2358'
-                }
+PROD_PRAX_AUTH = PraxedoSoapClient.WsCredential(usr='WSDEM2',
+                                                psw='WsdemWsdem2358')
 
 
 if __name__ == "__main__":
@@ -48,13 +37,13 @@ if __name__ == "__main__":
     print('program start')
     
     # creating a new Praxedo web service client
-    praxWsClient = PraxedoSoapClient(PRAX_BIZ_EVT_WSDL_URL,PRAX_BIZ_EVT_ATTACH_WSDL_URL,QUAL_PRAX_AUTH)
+    praxWsClient = PraxedoSoapClient(PRAX_BIZ_EVT_WSDL_URL,PRAX_BIZ_EVT_ATTACH_WSDL_URL,PROD_PRAX_AUTH)
     
     # opening a connection
     praxWsClient.open_connection()
     
     # requesting a business event
-    result = praxWsClient.get_bizEvt(['81215384'])
+    result = praxWsClient.get_bizEvt(['81215384'],PraxedoSoapClient.GET_BIZEVT_POPUL_OPT_SET.EXTENDED)
     
     # printing the result
     pprint(result)

@@ -54,7 +54,7 @@ class PraxedoSoapClient:
         self.bizEvt_attach_client       : Client # zeep client for business event attachement management
         
         
-        self.http_session.verify  = False
+        
         self.searchAbort          = False
     
     def open_connection(self):
@@ -64,8 +64,9 @@ class PraxedoSoapClient:
             warnings.simplefilter('ignore')
             
             # authentication
-            self.http_session = Session()
-            self.http_session.auth = HTTPBasicAuth(self.ws_credential.usr, self.ws_credential.psw)  # Qual
+            self.http_session           = Session()
+            self.http_session.verify    = False
+            self.http_session.auth      = HTTPBasicAuth(self.ws_credential.usr, self.ws_credential.psw)  # Qual
                 
             self.bizEvt_tranport            = Transport(session = self.http_session)
             self.bizEvt_attach_transport    = Transport(session = self.http_session)
@@ -153,9 +154,9 @@ class PraxedoSoapClient:
         """
     
     
-    class GET_BIZEVT_POPUL_OPT_SET(Enum):
+    class GET_BIZEVT_POPUL_OPT_SET(NamedTuple):
 
-        class OPTIONS(Enum):
+        class OPTIONS(NamedTuple):
             prefix = 'businessEvent.populate.'
             COREDATA_1     = f'{prefix}coreData'
             QUALIDATA_1    = f'{prefix}qualificationData'
@@ -165,24 +166,24 @@ class PraxedoSoapClient:
             COMPLDATA_3    = f'{prefix}completionData.excludeBinaryData' 
             
 
-        BASIC   = [ {'key': OPTIONS.COREDATA_1.value},
-                    {'key': OPTIONS.QUALIDATA_1.value},
-                    {'key': OPTIONS.SCHEDUDATA_1.value},
-                    {'key': OPTIONS.COMPLDATA_1.value}
+        BASIC   = [ {'key': OPTIONS.COREDATA_1},
+                    {'key': OPTIONS.QUALIDATA_1},
+                    {'key': OPTIONS.SCHEDUDATA_1},
+                    {'key': OPTIONS.COMPLDATA_1}
                  ]
         
         EXTENDED = BASIC.copy() + [
-                    {'key': OPTIONS.COMPLDATA_2.value},
-                    {'key': OPTIONS.COMPLDATA_3.value}
+                    {'key': OPTIONS.COMPLDATA_2},
+                    {'key': OPTIONS.COMPLDATA_3}
                                   ]
     
     
     
-    def get_bizEvt(self,evt_id_list : list[str], arg_populate_opt = GET_BIZEVT_POPUL_OPT_SET.BASIC):
+    def get_bizEvt(self,evt_id_list : list[str], populate_opt = GET_BIZEVT_POPUL_OPT_SET.BASIC):
 
         # evt_id_list_arg = evt_id_list # [f"{arg_evt_id_str}"]
         
-        populate_opt_arg =  arg_populate_opt.value
+        populate_opt_arg =  populate_opt
         
         print('Calling the getEvents service ...')
         with warnings.catch_warnings():
@@ -192,7 +193,7 @@ class PraxedoSoapClient:
         return get_evt_result
     
     
-    class SRCH_BIZEVT_POPUL_OPT_SET(Enum):
+    class SRCH_BIZEVT_POPUL_OPT_SET(NamedTuple):
 
         """
         **** 20x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#searchevents
@@ -217,7 +218,7 @@ class PraxedoSoapClient:
         businessEvent.populate.annotations.withCode
         extendedLastModificationDate 
         """
-        class OPTIONS(Enum):
+        class OPTIONS(NamedTuple):
             prefix = 'businessEvent.populate.'
             COREDATA_1     = f'{prefix}coreData'
             QUALIDATA_1    = f'{prefix}qualificationData'
@@ -227,15 +228,15 @@ class PraxedoSoapClient:
             COMPLDATA_3    = f'{prefix}completionData.excludeBinaryData' 
             
 
-        BASIC   = [ {'key': OPTIONS.COREDATA_1.value},
-                    {'key': OPTIONS.QUALIDATA_1.value},
-                    {'key': OPTIONS.SCHEDUDATA_1.value},
-                    {'key': OPTIONS.COMPLDATA_1.value}
+        BASIC   = [ {'key': OPTIONS.COREDATA_1},
+                    {'key': OPTIONS.QUALIDATA_1},
+                    {'key': OPTIONS.SCHEDUDATA_1},
+                    {'key': OPTIONS.COMPLDATA_1}
                  ]
         
         EXTENDED = BASIC.copy() + [
-                    {'key': OPTIONS.COMPLDATA_2.value},
-                    {'key': OPTIONS.COMPLDATA_3.value}
+                    {'key': OPTIONS.COMPLDATA_2},
+                    {'key': OPTIONS.COMPLDATA_3}
                                   ]
     
     
