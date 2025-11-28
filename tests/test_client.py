@@ -1,3 +1,13 @@
+
+
+# -- Import hack ----------------------------------------------------------
+import sys
+import os
+
+# Add src to sys.path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+#-----------------------------------------------------------------------------
+
 from enum import Enum, unique
 from pprint import pprint
 
