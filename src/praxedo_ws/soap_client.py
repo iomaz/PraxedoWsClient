@@ -35,7 +35,7 @@ def get_url_content(arg_url):
     return req_result.content
 
 
-class PraxedoWSClient:
+class PraxedoSoapClient:
      
     class WsCredential(NamedTuple):
         usr : str
@@ -292,14 +292,14 @@ class PraxedoWSClient:
                
                 search_results = self.bizEvt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,populate_opt_arg)
             
-            return_code = PraxedoWSClient.SRCH_BIZEVT_RET_CODE(search_results.resultCode)
+            return_code = PraxedoSoapClient.SRCH_BIZEVT_RET_CODE(search_results.resultCode)
             match return_code : 
-                case PraxedoWSClient.SRCH_BIZEVT_RET_CODE.SUCESS :
+                case PraxedoSoapClient.SRCH_BIZEVT_RET_CODE.SUCESS :
                     total_entities_results += search_results.entities
                     search_results.entities = total_entities_results
                     break
                 
-                case PraxedoWSClient.SRCH_BIZEVT_RET_CODE.PARTIAL_RESULT :
+                case PraxedoSoapClient.SRCH_BIZEVT_RET_CODE.PARTIAL_RESULT :
                     if not self.searchAbort :
                         resp_page_nbr += 1
                         first_result_idx += MAX_RESULTS_PER_PAGE # incrementing the first index for a multipage result 
