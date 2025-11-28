@@ -181,7 +181,7 @@ class PraxedoSoapClient:
     
     def get_bizEvt(self,evt_id_list : list[str], populate_opt = GET_BIZEVT_POPUL_OPT_SET.BASIC):
 
-        # evt_id_list_arg = evt_id_list # [f"{arg_evt_id_str}"]
+        RESULT_CODE = PraxedoSoapClient.GET_BIZEVT_RESULT_CODE
         
         populate_opt_arg =  populate_opt
         
@@ -190,12 +190,10 @@ class PraxedoSoapClient:
             warnings.simplefilter('ignore')
             get_evt_result = self.bizEvt_client.service.getEvents(evt_id_list,populate_opt_arg)
 
-        result_code = PraxedoSoapClient.GET_BIZEVT_RESULT_CODE(get_evt_result.resultCode) 
+        result_code = RESULT_CODE(get_evt_result.resultCode) 
         
-        #match result_code:
-            
-            
-               
+        if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
+                
         return get_evt_result
     
     
