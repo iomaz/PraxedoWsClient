@@ -1,7 +1,5 @@
 # -- Import hack ----------------------------------------------------------
-import sys
-import os
-
+import os, sys
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 #-----------------------------------------------------------------------------
