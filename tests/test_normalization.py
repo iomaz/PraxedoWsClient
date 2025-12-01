@@ -7,6 +7,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from zeep import helpers as zeepHelper
 import pandas as pd
+import sqlite3
+
 
 # local imports
 from praxedo_ws.soap_client import PraxedoSoapClient
@@ -29,9 +31,9 @@ if __name__ == "__main__":
     praxWsClient.open_connection()
     
     # requesting a business event
-    result = praxWsClient.get_bizEvt(['81215384'])
+    result = praxWsClient.get_bizEvt(['81215384','81215383','81215382'])
     
-    #pprint(result)
+    pprint(result.entities)
     
     print(f'number of biz events: {len(result.entities)}')
     
@@ -40,11 +42,25 @@ if __name__ == "__main__":
     
     # normalizing with pandas...
     print('normalizing with pandas')
-    df = pd.json_normalize(std_result[0])
+    df = pd.json_normalize(std_result) # type: ignore
+    print(df.to_string())
     
-    print(df)
+    tbl_name = 'response_table'
+    
+    # writing the result to a text file
+    with open(f'{tbl_name}.txt', "w", encoding="utf-8") as file:
+        file.write(df.to_string())
+    # print(df.to_string())
     
     
-    praxWsClient.close_connection()
+    
+    # writing the dataframe to a sqlite table
+    
+    with sqlite3.connect(f'{tbl_name}.sqlite3') as conn:
+        #conn.execute(f'DROP TABLE IF EXISTS {tbl_name}')
+        #conn.commit()
+        dtype_dict = {col: 'TEXT' for col in df.columns}
+        df.to_sql(tbl_name,conn,if_exists='replace',index=False,dtype=dtype_dict) # type: ignore
+    
     
     print('program end')
