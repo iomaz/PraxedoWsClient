@@ -31,7 +31,7 @@ if __name__ == "__main__":
     praxWsClient.open_connection()
     
     # requesting a business event
-    result = praxWsClient.get_bizEvt(['81215384','81215383','81215382'])
+    result = praxWsClient.get_bizEvt(['81215384','81215383','81215382'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
     
     pprint(result.entities)
     
@@ -47,17 +47,17 @@ if __name__ == "__main__":
     
     # normalizing with pandas...
     print('normalizing with pandas')
-    df = pd.json_normalize(pyObj_result,max_level=2) # type: ignore
+    df = pd.json_normalize(pyObj_result,max_level=3) # type: ignore
     #print(df.to_string())
     
-    # serialize all df column into json
-    json_df = df.map(lambda value : str(orjson.dumps(value, default= lambda x : 'None'),'utf-8'))
+    # serialize all df column values into json
+    json_df = df.map(lambda value : str(orjson.dumps(value, default= lambda val : 'None'),'utf-8').strip('"'))
     
     
     tbl_name = 'response_table'
     
     # writing the result to a csv file
-    json_df.to_csv(f'{tbl_name}.csv')
+    # json_df.to_csv(f'{tbl_name}.csv')
     
     # writing the result to a text file
     with open(f'{tbl_name}.txt', "w", encoding="utf-8") as file:
@@ -65,11 +65,8 @@ if __name__ == "__main__":
     # print(df.to_string())
     
     # writing the dataframe to a sqlite table
-    #with sqlite3.connect(f'{tbl_name}.sqlite3') as conn:
-        #conn.execute(f'DROP TABLE IF EXISTS {tbl_name}')
-        #conn.commit()
-        # dtype_dict = {col: 'TEXT' for col in df.columns}
-        #df.to_sql(tbl_name,conn,if_exists='replace',index=False) # type: ignore
+    with sqlite3.connect(f'{tbl_name}.sqlite3') as conn:
+        json_df.to_sql(tbl_name,conn,if_exists='replace',index=False) # type: ignore
     
     
     print('program end')
