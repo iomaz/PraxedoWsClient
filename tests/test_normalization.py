@@ -4,6 +4,7 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 #-----------------------------------------------------------------------------
 
+from datetime import datetime
 from pprint import pprint
 from zeep import helpers as zeepHelper
 import pandas as pd
@@ -31,14 +32,24 @@ if __name__ == "__main__":
     praxWsClient.open_connection()
     
     # requesting a business event
-    result = praxWsClient.get_bizEvt(['81215384','81215383','81215382'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
+    #get_evt_results = praxWsClient.get_bizEvt(['81215384','81215383','81215382'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
     
-    pprint(result.entities)
+    srch_start = datetime.strptime('01/11/25','%d/%m/%y')
+    srch_stop = datetime.strptime('06/11/25','%d/%m/%y')
+    DATE_CONSTRAINT = PraxedoSoapClient.DATE_CONSTRAINT
+    SRCH_POPU_OPT = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET
+    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,DATE_CONSTRAINT.CREATION,SRCH_POPU_OPT.EXTENDED) # type: ignore
     
-    print(f'number of biz events: {len(result.entities)}')
+    print(f'srch_evt_results : len = {len(srch_evt_results.entities)}')
+    
+    
+    
+    # pprint(srch_evt_results.entities)
+    
+    print(f'number of biz events in response : {len(srch_evt_results.entities)}')
     
     # serializing into standard python structure...
-    pyObj_result = zeepHelper.serialize_object(result.entities)
+    pyObj_result = zeepHelper.serialize_object(srch_evt_results.entities)
     
     # converting into json
     #json_result = str(orjson.dumps(pyObj_result),'utf-8')
@@ -47,7 +58,7 @@ if __name__ == "__main__":
     
     # normalizing with pandas...
     print('normalizing with pandas')
-    df = pd.json_normalize(pyObj_result,max_level=3) # type: ignore
+    df = pd.json_normalize(pyObj_result,max_level=None) # type: ignore
     #print(df.to_string())
     
     # serialize all df column values into json

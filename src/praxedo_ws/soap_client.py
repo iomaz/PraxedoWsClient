@@ -284,9 +284,6 @@ class PraxedoSoapClient:
                         }
 
 
-        populate_opt_arg = arg_populate_opt.value
-        
-        
         resp_page_nbr      = 1
         first_result_idx   = 0
         total_entities_results = []
@@ -297,7 +294,7 @@ class PraxedoSoapClient:
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                
-                search_results = self.bizEvt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,populate_opt_arg)
+                search_results = self.bizEvt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,arg_populate_opt)
             
             return_code = PraxedoSoapClient.SRCH_BIZEVT_RET_CODE(search_results.resultCode)
             match return_code : 
