@@ -129,25 +129,25 @@ class PraxedoSoapClient:
     """
     #region
         **** 21x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#getevents
-        businessEvent.populate.coreData        
-        businessEvent.populate.coreData.referentialData
-        businessEvent.populate.coreData.serviceOrderPosition
-        businessEvent.populate.qualificationData
-        businessEvent.populate.qualificationData.reopening
-        businessEvent.populate.qualificationData.extendedExpectedItems
-        businessEvent.populate.schedulingData
-        businessEvent.populate.schedulingData.appointmentDate
-        businessEvent.populate.schedulingData.populateInQualifiedStatus
-        businessEvent.populate.completionData.fields
-        businessEvent.populate.completionData.items
-        businessEvent.populate.completionData.extendedItems
-        businessEvent.populate.completionData.items.customAttributes
-        businessEvent.populate.completionData.lifeCycleDate
-        businessEvent.populate.completionData.excludeBinaryData
-        businessEvent.populate.annotations
-        businessEvent.populate.contractData
-        businessEvent.populate.annotations.withReportFields
-        businessEvent.populate.annotations.withCode
+        businessEvent.populate  .coreData        
+                                .coreData.referentialData
+                                .coreData.serviceOrderPosition
+                                .qualificationData
+                                .qualificationData.reopening
+                                .qualificationData.extendedExpectedItems
+                                .schedulingData
+                                .schedulingData.appointmentDate
+                                .schedulingData.populateInQualifiedStatus
+                                .completionData.fields
+                                .completionData.items
+                                .completionData.extendedItems
+                                .completionData.items.customAttributes
+                                .completionData.lifeCycleDate
+                                .completionData.excludeBinaryData
+                                .annotations
+                                .contractData
+                                .annotations.withReportFields
+                                .annotations.withCode
         extendedLastModificationDate
         businessEvent.feature.status.cancelled
     #endregion
@@ -201,48 +201,50 @@ class PraxedoSoapClient:
 
         """
         #region
-        **** 20x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#searchevents
-        businessEvent.populate.coreData        
-        businessEvent.populate.coreData.referentialData
-        businessEvent.populate.coreData.serviceOrderPosition
-        businessEvent.populate.qualificationData
-        businessEvent.populate.qualificationData.reopening
-        businessEvent.populate.qualificationData.extendedExpectedItems
-        businessEvent.populate.schedulingData
-        businessEvent.populate.schedulingData.appointmentDate
-        businessEvent.populate.schedulingData.populateInQualifiedStatus
-        businessEvent.populate.completionData.cancellation
-        businessEvent.populate.completionData.fields
-        businessEvent.populate.completionData.items
-        businessEvent.populate.completionData.extendedItems
-        businessEvent.populate.completionData.items.customAttributes
-        businessEvent.populate.completionData.lifeCycleDate
-        businessEvent.populate.completionData.excludeBinaryData
-        businessEvent.populate.annotations
-        businessEvent.populate.annotations.withReportFields
-        businessEvent.populate.annotations.withCode
+        **** total of 20x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#searchevents
+        businessEvent.populate  .coreData        
+                                .coreData.referentialData
+                                .coreData.serviceOrderPosition
+                                .qualificationData
+                                .qualificationData.reopening
+                                .qualificationData.extendedExpectedItems
+                                .schedulingData
+                                .schedulingData.appointmentDate
+                                .schedulingData.populateInQualifiedStatus
+                                .completionData.items
+                                .completionData.extendedItems
+                                .completionData.items.customAttributes
+                                .completionData.lifeCycleDate
+                                .completionData.fields
+                                .completionData.excludeBinaryData
+                                .completionData.cancellation
+                                .annotations
+                                .annotations.withReportFields
+                                .annotations.withCode
         extendedLastModificationDate
         #endregion
         """
         class OPTIONS(NamedTuple):
             prefix = 'businessEvent.populate.'
-            COREDATA_1     = f'{prefix}coreData'
-            QUALIDATA_1    = f'{prefix}qualificationData'
-            SCHEDUDATA_1   = f'{prefix}schedulingData'
-            COMPLDATA_1    = f'{prefix}completionData.lifeCycleDate'
-            COMPLDATA_2    = f'{prefix}completionData.fields'
-            COMPLDATA_3    = f'{prefix}completionData.excludeBinaryData' 
+            CORE_1      = f'{prefix}coreData'
+            QUALI_1     = f'{prefix}qualificationData'
+            SCHED_1     = f'{prefix}schedulingData'
+            CPLETION_1  = f'{prefix}completionData.lifeCycleDate'
+            CPLETION_2  = f'{prefix}completionData.fields'
+            CPLETION_3  = f'{prefix}completionData.excludeBinaryData'
+            CPLETION_4  = f'{prefix}completionData.cancellation' 
             
 
-        BASIC   = [ {'key': OPTIONS.COREDATA_1},
-                    {'key': OPTIONS.QUALIDATA_1},
-                    {'key': OPTIONS.SCHEDUDATA_1},
-                    {'key': OPTIONS.COMPLDATA_1}
+        BASIC   = [ {'key': OPTIONS.CORE_1},
+                    {'key': OPTIONS.QUALI_1},
+                    {'key': OPTIONS.SCHED_1},
+                    {'key': OPTIONS.CPLETION_1}
                  ]
         
         EXTENDED = BASIC.copy() + [
-                    {'key': OPTIONS.COMPLDATA_2},
-                    {'key': OPTIONS.COMPLDATA_3}
+                    {'key': OPTIONS.CPLETION_2},
+                    {'key': OPTIONS.CPLETION_3},
+                    {'key': OPTIONS.CPLETION_4},
                                   ]
     
     

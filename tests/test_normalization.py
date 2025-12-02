@@ -34,14 +34,15 @@ if __name__ == "__main__":
     # requesting a business event
     #get_evt_results = praxWsClient.get_bizEvt(['81215384','81215383','81215382'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
     
-    srch_start = datetime.strptime('01/11/25','%d/%m/%y')
-    srch_stop = datetime.strptime('06/11/25','%d/%m/%y')
+    srch_start = datetime.strptime('06/11/25','%d/%m/%y')
+    srch_stop = datetime.strptime('07/11/25','%d/%m/%y')
     DATE_CONSTRAINT = PraxedoSoapClient.DATE_CONSTRAINT
     SRCH_POPU_OPT = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET
-    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,DATE_CONSTRAINT.CREATION,SRCH_POPU_OPT.EXTENDED) # type: ignore
+    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,DATE_CONSTRAINT.COMPLETION,SRCH_POPU_OPT.EXTENDED) # type: ignore
     
     print(f'srch_evt_results : len = {len(srch_evt_results.entities)}')
     
+    pprint(srch_evt_results.entities)
     
     
     # pprint(srch_evt_results.entities)
