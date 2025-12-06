@@ -59,7 +59,7 @@ if __name__ == "__main__":
     
     # normalizing with pandas...
     print('normalizing with pandas')
-    df = pd.json_normalize(pyObj_result,max_level=2) # type: ignore
+    df = pd.json_normalize(pyObj_result,max_level=1) # type: ignore
     #print(df.to_string())
     
     # serialize all df column values into json
