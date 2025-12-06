@@ -63,7 +63,7 @@ if __name__ == "__main__":
     #print(df.to_string())
     
     # serialize all df column values into json
-    json_df = df.map(lambda value : str(orjson.dumps(value, default= lambda val : 'None'),'utf-8').strip('"'))
+    json_df = df.map(lambda value : orjson.dumps(value, default= lambda val : 'None').decode('utf-8').strip('"'))
     
     
     tbl_name = 'response_table'
