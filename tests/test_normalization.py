@@ -13,6 +13,7 @@ import orjson
 
 # local imports
 from praxedo_ws.soap_client import PraxedoSoapClient
+from praxedo_ws.ws_utility import *
 
 # Praxedo Qual credential
 QUAL_PRAX_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
@@ -36,15 +37,17 @@ if __name__ == "__main__":
     
     srch_start = datetime.strptime('06/11/25','%d/%m/%y')
     srch_stop = datetime.strptime('07/11/25','%d/%m/%y')
-    DATE_CONSTRAINT = PraxedoSoapClient.DATE_CONSTRAINT
-    SRCH_POPU_OPT = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET
-    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,DATE_CONSTRAINT.COMPLETION,SRCH_POPU_OPT.EXTENDED) # type: ignore
+    COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
+    EXTENDED_RESULTS = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED
+    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,COMPLETION_DATE,EXTENDED_RESULTS) # type: ignore
     
     print(f'srch_evt_results : len = {len(srch_evt_results.entities)}')
     
     pprint(srch_evt_results.entities)
     
-    
+    # Ws utility trials
+    build_core_model_from_ws_result(srch_evt_results.entities)
+
     # pprint(srch_evt_results.entities)
     
     print(f'number of biz events in response : {len(srch_evt_results.entities)}')
@@ -72,8 +75,8 @@ if __name__ == "__main__":
     # json_df.to_csv(f'{tbl_name}.csv')
     
     # writing the result to a text file
-    with open(f'{tbl_name}.txt', "w", encoding="utf-8") as file:
-        file.write(json_df.to_string())
+    # with open(f'{tbl_name}.txt', "w", encoding="utf-8") as file:
+    #    file.write(json_df.to_string())
     # print(df.to_string())
     
     # writing the dataframe to a sqlite table
