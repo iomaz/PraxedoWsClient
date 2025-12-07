@@ -6,27 +6,31 @@ from jsonQ import Query
 def build_core_model_from_ws_result(ws_result_entities:list[object]):
     
     # convert zeep objects to native python structures
-    pyObj_result = zeepHelper.serialize_object(ws_result_entities)
+    pyObj_entities = zeepHelper.serialize_object(ws_result_entities)
 
     # building a data frame out of the result. level = 1 is enough to have a natural accesss to useful fields
-    df = pd.json_normalize(pyObj_result,max_level=1)
+    wo_core = pd.json_normalize(pyObj_entities,max_level=1)
 
     # jsonifying all frame values
-    json_df = df.map(lambda value : orjson.dumps(value, default= lambda val : 'null').decode('utf-8').strip('"'))
+    wo_core = wo_core.map(lambda value : orjson.dumps(value, default= lambda val : 'null').decode('utf-8').strip('"'))
 
-    # splitting the resulting data frame to match the "core model" which consist in 4x tables
-    # [1] wo_core  (wo = work order)
+    # transforming the resulting data frame to match the "core model" which consist in 4x tables
+    # [1] wo_core  
     # [2] wo_attach
     # [3] wo_report
     # [4] wo_report_img
 
     # [1] - Building the wo_report frame
     # creating the table by copying the work order "id"
-    WO_ID_COL           = 'id'
-    WO_EXTENSION_COL    = 'extensions'
-    WO_UUID_COL         = 'uuid'
+    WO_CORE_ID_COL           = 'id'
+    WO_CORE_EXTENSION_COL    = 'extensions'
+    
+    WO_REPORT_UUID_COL          = 'uuid'
+    WO_CORE_FIELDS_COL          = 'completionData.fields'
+    WO_REPORT_FIELDS_COL        = 'report_fields'
+    WO_REPORT_PDF_BIN           = 'report_pdf_bin'
 
-    wo_report = json_df[[WO_ID_COL]].copy()
+    wo_report = wo_core[[WO_CORE_ID_COL]].copy()
 
     def extract_uuid(json_val):
         query = Query(orjson.loads(json_val))
@@ -36,7 +40,13 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
             return return_val
         return 'null'
 
-    wo_report[WO_UUID_COL] = json_df[WO_EXTENSION_COL].apply(extract_uuid)
+    wo_report[WO_REPORT_UUID_COL] = wo_core[WO_CORE_EXTENSION_COL].apply(extract_uuid)
+
+    wo_report[WO_REPORT_FIELDS_COL] = wo_core[WO_CORE_FIELDS_COL].copy()
+    wo_core.drop(columns=[WO_CORE_FIELDS_COL])
+
+    # define an empty pdf report column
+    wo_report[WO_REPORT_PDF_BIN] = None
 
     print('resulting data frame')
     print(wo_report)
