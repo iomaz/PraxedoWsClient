@@ -10,10 +10,17 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
     pyObj_entities = zeepHelper.serialize_object(ws_result_entities)
 
     # building a data frame out of the result. level = 1 is enough to have a natural accesss to useful fields
-    df_wo_core = pd.json_normalize(pyObj_entities,max_level=1)
+    df_wo_core = pd.json_normalize(pyObj_entities,max_level=2)
 
-    # jsonifying all frame values
-    df_wo_core = df_wo_core.map(lambda value : orjson.dumps(value, default= lambda val : 'null').decode('utf-8').strip('"'))
+    def convert_complex_val_to_json(value):
+        if isinstance(value,(list,dict)):
+            if len(value) > 0:
+                json_val = orjson.dumps(value, default= lambda val : 'null').decode('utf-8').strip('"')
+                return json_val
+            else: return None
+        else: return value
+
+    df_wo_core = df_wo_core.map(convert_complex_val_to_json)
 
     # transforming the resulting data frame to match the "core model" which consist in 4x tables
     # [1] wo_core  
