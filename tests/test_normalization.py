@@ -49,26 +49,7 @@ if __name__ == "__main__":
     build_core_model_from_ws_result(srch_evt_results.entities)
 
     # pprint(srch_evt_results.entities)
-    
-    print(f'number of biz events in response : {len(srch_evt_results.entities)}')
-    
-    # serializing into standard python structure...
-    pyObj_result = zeepHelper.serialize_object(srch_evt_results.entities)
-    
-    # converting into json
-    #json_result = str(orjson.dumps(pyObj_result),'utf-8')
-    
-    #pprint(json_result)
-    
-    # normalizing with pandas...
-    print('normalizing with pandas')
-    df = pd.json_normalize(pyObj_result,max_level=1) # type: ignore
-    #print(df.to_string())
-    
-    # serialize all df column values into json
-    json_df = df.map(lambda value : orjson.dumps(value, default= lambda val : 'None').decode('utf-8').strip('"'))
-    
-    
+
     tbl_name = 'response_table'
     
     # writing the result to a csv file
@@ -80,8 +61,8 @@ if __name__ == "__main__":
     # print(df.to_string())
     
     # writing the dataframe to a sqlite table
-    with sqlite3.connect(f'{tbl_name}.sqlite3') as conn:
-        json_df.to_sql(tbl_name,conn,if_exists='replace',index=False) # type: ignore
+    #with sqlite3.connect(f'{tbl_name}.sqlite3') as conn:
+    #    json_df.to_sql(tbl_name,conn,if_exists='replace',index=False) # type: ignore
     
     
     print('program end')

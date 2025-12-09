@@ -10,7 +10,7 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
     pyObj_entities = zeepHelper.serialize_object(ws_result_entities)
 
     # building a data frame out of the result. level = 1 is enough to have a natural accesss to useful fields
-    df_wo_core = pd.json_normalize(pyObj_entities,max_level=2)
+    df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
     def convert_complex_val_to_json(value):
         if isinstance(value,(list,dict)):
@@ -72,8 +72,8 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
     for index, row in df_wo_report.iterrows():
         img_field_list = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",row[WO_REPORT_FIELDS_COL])
         for img_field in img_field_list :
-            field_id = img_field['id']
-            img_url  = img_field['value']
+            field_id = img_field['id'] # type: ignore
+            img_url  = img_field['value'] # type: ignore
             df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [row[WO_REPORT_ID_COL],field_id,img_url,None]
     
     print('*** wo_report_imgs ****')
