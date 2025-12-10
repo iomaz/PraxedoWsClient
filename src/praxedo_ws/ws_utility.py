@@ -1,12 +1,12 @@
-from typing import NamedTuple
+from enum import Enum, unique
 from zeep import helpers as zeepHelper
 import pandas as pd
 import orjson
 from jsonQ import Query
 import jsonpath
 
-
-class EVT_STATUS(NamedTuple):
+@unique
+class EVT_STATUS(Enum):
     NEW             = 0
     QUALIFIED       = 1
     PRE_SCHEDULED   = 2
