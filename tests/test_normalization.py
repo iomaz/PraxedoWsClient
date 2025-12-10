@@ -35,22 +35,23 @@ if __name__ == "__main__":
     # requesting a business event
     #get_evt_results = praxWsClient.get_bizEvt(['81215384','81215383','81215382'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
     
-    srch_start = datetime.strptime('06/11/25','%d/%m/%y')
-    srch_stop = datetime.strptime('07/11/25','%d/%m/%y')
+    srch_start = datetime.strptime('10/07/25 9:30','%d/%m/%y %H:%M')
+    srch_stop = datetime.strptime('10/07/25 9:40','%d/%m/%y %H:%M')
     COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
+    CREATION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.CREATION
     EXTENDED_RESULTS = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED
-    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,COMPLETION_DATE,EXTENDED_RESULTS) # type: ignore
+    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,CREATION_DATE,EXTENDED_RESULTS) # type: ignore
     
     print(f'srch_evt_results : len = {len(srch_evt_results.entities)}')
-    
-    pprint(srch_evt_results.entities)
+    srch_evt_results.entities[0].completionData.fields = None
+    pprint(srch_evt_results)
     
     # Ws utility trials
-    build_core_model_from_ws_result(srch_evt_results.entities)
+   #  build_core_model_from_ws_result(srch_evt_results)
 
     # pprint(srch_evt_results.entities)
 
-    tbl_name = 'response_table'
+    # tbl_name = 'response_table'
     
     # writing the result to a csv file
     # json_df.to_csv(f'{tbl_name}.csv')

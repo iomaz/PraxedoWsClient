@@ -11,17 +11,6 @@ from pprint import pprint
 from praxedo_ws.soap_client import PraxedoSoapClient
 
 
-@unique
-class EVT_STATUS(Enum):
-    NEW             = 0
-    QUALIFIED       = 1
-    PRE_SCHEDULED   = 2
-    SCHEDULED       = 3
-    IN_PROGRESS     = 4
-    COMPLETED       = 5
-    VALIDATED       = 6
-    CANCELLED       = 7
-
 
 PRAX_BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
 PRAX_BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
