@@ -101,8 +101,8 @@ class PraxedoSoapClient:
         CANCELLED       = 7
 
     
-    # if not completion date is found and the returned status in "COMPLETED" or "VALIDATED" then the real actual status is "CANCELED"
-    def identify_cancelled_status(self, entities_list:list):
+    # if not completion date is found and the status is "COMPLETED" or "VALIDATED" then the real status is "CANCELLED"
+    def identify_cancel_status(self, entities_list:list):
         STATUS = PraxedoSoapClient.BIZ_EVT_STATUS
         for biz_evt in entities_list:
             comp_date = False
@@ -217,7 +217,7 @@ class PraxedoSoapClient:
         
         if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
 
-        self.identify_cancelled_status(get_evt_result.entities)
+        self.identify_cancel_status(get_evt_result.entities)
 
         return get_evt_result
     
@@ -347,7 +347,7 @@ class PraxedoSoapClient:
                     print(f'searchEvents() service returned an error: {return_code} ')
                     break
         
-        self.identify_cancelled_status(search_results.entities)
+        self.identify_cancel_status(search_results.entities)
 
         return search_results
     
