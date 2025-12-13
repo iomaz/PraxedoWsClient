@@ -16,18 +16,20 @@ from praxedo_ws.soap_client import PraxedoSoapClient
 from praxedo_ws.ws_utility import *
 
 # Praxedo Qual credential
-QUAL_PRAX_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
+QUAL_CREDENTIAL = PraxedoSoapClient.WsCredential(usr='qua.webservice',
                                                 psw='#Qua.webservice-1/*')
 
-PRAX_BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
-PRAX_BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
+WSDL_BIZ_EVT_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
+WSDL_BIZ_EVT_ATTACH_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
 
 if __name__ == "__main__":
     
     print('program start')
     
     # creating a new Praxedo web service client
-    praxWsClient = PraxedoSoapClient(PRAX_BIZ_EVT_WSDL_URL,PRAX_BIZ_EVT_ATTACH_WSDL_URL,QUAL_PRAX_AUTH)
+    praxWsClient = PraxedoSoapClient(WSDL_BIZ_EVT_URL,
+                                     WSDL_BIZ_EVT_ATTACH_URL,
+                                     QUAL_CREDENTIAL)
     
     # opening a connection
     praxWsClient.open_connection()
@@ -35,16 +37,31 @@ if __name__ == "__main__":
     # requesting a business event
     #get_evt_results = praxWsClient.get_bizEvt(['81215384','81215383','81215382'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
     
-    srch_start = datetime.strptime('10/07/25 9:30','%d/%m/%y %H:%M')
-    srch_stop = datetime.strptime('10/07/25 9:40','%d/%m/%y %H:%M')
+    srch_start = datetime.strptime('14/10/25 00:00','%d/%m/%y %H:%M')
+    srch_stop = datetime.strptime('14/10/25 23:59','%d/%m/%y %H:%M')
     COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
     CREATION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.CREATION
+    LAST_MODIF_DATE = PraxedoSoapClient.DATE_CONSTRAINT.LASTMODIFI
     EXTENDED_RESULTS = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED
-    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,CREATION_DATE,EXTENDED_RESULTS) # type: ignore
+    BASIC_RESULTS = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.BASIC
+
+
+    get_evt_result = praxWsClient.get_bizEvt(['81240673'])
+    print('get result:')
+    pprint(get_evt_result.entities[0].status)
+
+
+    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,LAST_MODIF_DATE,BASIC_RESULTS) # type: ignore
     
     print(f'srch_evt_results : len = {len(srch_evt_results.entities)}')
-    srch_evt_results.entities[0].completionData.fields = None
-    pprint(srch_evt_results)
+    # srch_evt_results.entities[0].completionData.fields = None
+    
+    for idx, biz_evt in enumerate(srch_evt_results.entities) :
+        #if biz_evt.status == 'CANCELED':
+        pprint(f'idx:{idx} id: {biz_evt.id} status:{biz_evt.status}')
+
+    #pprint(srch_evt_results.entities[0])
+
     
     # Ws utility trials
    #  build_core_model_from_ws_result(srch_evt_results)

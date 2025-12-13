@@ -90,6 +90,28 @@ class PraxedoSoapClient:
         LASTMODIFI      =   'lastModificationDate'
     
     
+    class BIZ_EVT_STATUS(Enum):
+        NEW             = 0
+        QUALIFIED       = 1
+        PRE_SCHEDULED   = 2
+        SCHEDULED       = 3
+        IN_PROGRESS     = 4
+        COMPLETED       = 5
+        VALIDATED       = 6
+        CANCELLED       = 7
+
+    
+    # CENCELED status : if not completion date is found and the returned status in "COMPLETED" or "VALIDATED" then the real actual status is "CANCELED"
+    def identify_cancelled_status(self, entities_list:list):
+        BIZ_EVT_STATUS = PraxedoSoapClient.BIZ_EVT_STATUS
+        for biz_evt in entities_list:
+            completion_undefined = len([date for date in biz_evt.completionData.lifecycleTransitionDates if date['name'] == 'completionDate']) == 0
+            if completion_undefined :
+                #print(f'completion date undefined : id{biz_evt.id}')
+                evt_status_code = BIZ_EVT_STATUS[biz_evt.status].value
+                if evt_status_code in (BIZ_EVT_STATUS.COMPLETED.value,BIZ_EVT_STATUS.VALIDATED.value):
+                    biz_evt.status = BIZ_EVT_STATUS.CANCELLED.name
+
     
     def list_attachments(self,arg_evt_ext_id):
         # print('ws_list_attachments()...')
@@ -193,7 +215,9 @@ class PraxedoSoapClient:
         result_code = RESULT_CODE(get_evt_result.resultCode) 
         
         if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
-                
+
+        self.identify_cancelled_status(get_evt_result.entities)
+
         return get_evt_result
     
     
@@ -321,6 +345,8 @@ class PraxedoSoapClient:
                 case _: # in case of an error
                     print(f'searchEvents() service returned an error: {return_code} ')
                     break
+        
+        self.identify_cancelled_status(search_results.entities)
 
         return search_results
     

@@ -1,20 +1,8 @@
-from enum import Enum, unique
 from zeep import helpers as zeepHelper
 import pandas as pd
 import orjson
 from jsonQ import Query
 import jsonpath
-
-@unique
-class EVT_STATUS(Enum):
-    NEW             = 0
-    QUALIFIED       = 1
-    PRE_SCHEDULED   = 2
-    SCHEDULED       = 3
-    IN_PROGRESS     = 4
-    COMPLETED       = 5
-    VALIDATED       = 6
-    CANCELLED       = 7
 
 
 def build_core_model_from_ws_result(ws_result_entities:list[object]):
