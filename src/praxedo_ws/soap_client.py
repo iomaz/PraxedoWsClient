@@ -101,16 +101,17 @@ class PraxedoSoapClient:
         CANCELLED       = 7
 
     
-    # CENCELED status : if not completion date is found and the returned status in "COMPLETED" or "VALIDATED" then the real actual status is "CANCELED"
+    # if not completion date is found and the returned status in "COMPLETED" or "VALIDATED" then the real actual status is "CANCELED"
     def identify_cancelled_status(self, entities_list:list):
-        BIZ_EVT_STATUS = PraxedoSoapClient.BIZ_EVT_STATUS
+        STATUS = PraxedoSoapClient.BIZ_EVT_STATUS
         for biz_evt in entities_list:
-            completion_undefined = len([date for date in biz_evt.completionData.lifecycleTransitionDates if date['name'] == 'completionDate']) == 0
-            if completion_undefined :
-                #print(f'completion date undefined : id{biz_evt.id}')
-                evt_status_code = BIZ_EVT_STATUS[biz_evt.status].value
-                if evt_status_code in (BIZ_EVT_STATUS.COMPLETED.value,BIZ_EVT_STATUS.VALIDATED.value):
-                    biz_evt.status = BIZ_EVT_STATUS.CANCELLED.name
+            comp_date = False
+            for date in biz_evt.completionData.lifecycleTransitionDates : 
+                if date['name'] == 'completionDate' : comp_date = True; break
+            
+            if not comp_date :
+                match biz_evt.status : 
+                    case STATUS.COMPLETED.name |STATUS.VALIDATED.name : biz_evt.status = STATUS.CANCELLED.name  
 
     
     def list_attachments(self,arg_evt_ext_id):
