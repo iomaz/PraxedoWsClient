@@ -39,16 +39,16 @@ if __name__ == "__main__":
     
     srch_start = datetime.strptime('14/10/25 00:00','%d/%m/%y %H:%M')
     srch_stop = datetime.strptime('14/10/25 23:59','%d/%m/%y %H:%M')
-    COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
-    CREATION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.CREATION
-    LAST_MODIF_DATE = PraxedoSoapClient.DATE_CONSTRAINT.LASTMODIFI
-    EXTENDED_RESULTS = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED
-    BASIC_RESULTS = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.BASIC
+    COMPLETION_DATE     = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
+    CREATION_DATE       = PraxedoSoapClient.DATE_CONSTRAINT.CREATION
+    LAST_MODIF_DATE     = PraxedoSoapClient.DATE_CONSTRAINT.LASTMODIFI
+    EXTENDED_RESULTS    = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED
+    BASIC_RESULTS       = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.BASIC
 
 
     get_evt_result = praxWsClient.get_bizEvt(['81240673'])
     print('get result:')
-    pprint(get_evt_result.entities[0].status)
+    pprint(get_evt_result.entities[0])
 
 
     srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,LAST_MODIF_DATE,BASIC_RESULTS) # type: ignore
