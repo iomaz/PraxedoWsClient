@@ -119,6 +119,6 @@ def get_wo_raw_model(ws_result_entities:list[object]):
 
     # returning a named tuple with a the reference to the 3x frame
     Result = namedtuple('result',['wo_core','wo_report','wo_report_imgs'])
-    result = Result(wo_core = df_wo_core, wo_core_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
+    result = Result(wo_core = df_wo_core, wo_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
 
     return result
