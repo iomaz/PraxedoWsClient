@@ -16,24 +16,38 @@ from praxedo_ws.soap_client import PraxedoSoapClient
 from praxedo_ws.ws_utility import *
 
 # Praxedo Qual credential
-QUAL_PRAX_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
-                                                psw='#Qua.webservice-1/*')
+QUAL_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
+                                           psw='#Qua.webservice-1/*')
 
-PRAX_BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
-PRAX_BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
+PROD_AUTH = PraxedoSoapClient.WsCredential(usr='WSDEM',
+                                           psw='WsdemWsdem2358')
+
+BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
+BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
 
 if __name__ == "__main__":
     
     print('program start')
     
     # creating a new Praxedo web service client
-    praxWsClient = PraxedoSoapClient(PRAX_BIZ_EVT_WSDL_URL,PRAX_BIZ_EVT_ATTACH_WSDL_URL,QUAL_PRAX_AUTH)
+    praxWsClient = PraxedoSoapClient(BIZ_EVT_WSDL_URL,
+                                     BIZ_EVT_ATTACH_WSDL_URL,
+                                     PROD_AUTH)
     
     # opening a connection
     praxWsClient.open_connection()
     
     # requesting a business event
-    #get_evt_results = praxWsClient.get_bizEvt(['81215384','81215383','81215382'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
+    get_evt_results = praxWsClient.get_bizEvt(['83007173'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
+    
+    pprint(get_evt_results.entities[0].completionData)
+    
+    pyobj_fields = zeepHelper.serialize_object(get_evt_results.entities[0].completionData.fields)
+    
+    with open(f'fields.json', "w", encoding="utf-8") as file:
+        file.write(orjson.dumps(pyobj_fields).decode('utf-8'))
+    
+    exit()
     
     srch_start = datetime.strptime('10/07/25 9:30','%d/%m/%y %H:%M')
     srch_stop = datetime.strptime('10/07/25 9:40','%d/%m/%y %H:%M')
