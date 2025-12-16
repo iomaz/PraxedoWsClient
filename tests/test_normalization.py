@@ -32,20 +32,26 @@ if __name__ == "__main__":
     # creating a new Praxedo web service client
     praxWsClient = PraxedoSoapClient(BIZ_EVT_WSDL_URL,
                                      BIZ_EVT_ATTACH_WSDL_URL,
-                                     PROD_AUTH)
+                                     QUAL_AUTH)
     
     # opening a connection
     praxWsClient.open_connection()
     
     # requesting a business event
-    get_evt_results = praxWsClient.get_bizEvt(['83007173'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
+    #get_evt_results = praxWsClient.get_bizEvt(['83007173'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
     
-    pprint(get_evt_results.entities[0].completionData)
+    #pprint(get_evt_results.entities[0].completionData)
     
-    pyobj_fields = zeepHelper.serialize_object(get_evt_results.entities[0].completionData.fields)
+    #pyobj_fields = zeepHelper.serialize_object(get_evt_results.entities[0].completionData.fields)
     
-    with open(f'fields.json', "w", encoding="utf-8") as file:
-        file.write(orjson.dumps(pyobj_fields).decode('utf-8'))
+    #with open(f'fields.json', "w", encoding="utf-8") as file:
+    #    file.write(orjson.dumps(pyobj_fields).decode('utf-8'))
+    
+    week52_2024    = get_date_range_from_week_nbr(52,2024)
+    week1_2025     = get_date_range_from_week_nbr(1,2025)
+    
+    print(f'week 52 2024 {week52_2024}')
+    print(f'week 1 2025 {week1_2025}')
     
     exit()
     

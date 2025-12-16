@@ -6,6 +6,34 @@ from jsonQ import Query
 import jsonpath
 
 
+from datetime import date, timedelta
+
+def get_date_range_from_week_nbr(week: int, year: int):
+    """
+    Return the (start_date, end_date) for an ISO week.
+    ISO week starts on Monday (weekday=1) and ends on Sunday (weekday=7).
+    """
+    # Monday of the ISO week
+    start = date.fromisocalendar(year, week, 1)  # 1 = Monday
+    start = start - timedelta(days=1)
+    end   = start + timedelta(days=7)
+    return start, end
+
+
+def get_dates_from_week(week : int, year: int):
+    
+    jan1 = date(year, 1, 1)
+    # Move back to the most recent Sunday (including Jan 1 if it is Sunday)
+    offset = (jan1.weekday() - 6) % 7
+    first_sunday = jan1 - timedelta(days=offset)
+
+    # Compute start Sunday for the requested week
+    start_sunday = first_sunday + timedelta(weeks=week - 1)
+    next_sunday = start_sunday + timedelta(days=7)
+
+    return start_sunday, next_sunday
+
+
 def get_wo_raw_model(ws_result_entities:list[object]):
     '''
     The function basically process a raw SOAP web service response and separate work order and work order report information
