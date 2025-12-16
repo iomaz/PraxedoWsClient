@@ -1,30 +1,69 @@
-from enum import Enum, unique
+from collections import namedtuple
 from zeep import helpers as zeepHelper
 import pandas as pd
 import orjson
 from jsonQ import Query
 import jsonpath
 
-@unique
-class EVT_STATUS(Enum):
-    NEW             = 0
-    QUALIFIED       = 1
-    PRE_SCHEDULED   = 2
-    SCHEDULED       = 3
-    IN_PROGRESS     = 4
-    COMPLETED       = 5
-    VALIDATED       = 6
-    CANCELLED       = 7
 
+def get_wo_raw_model(ws_result_entities:list[object]):
+    '''
+    The function basically process a raw SOAP web service response and separate work order and work order report information
+    The result is a "raw model" with 3x tables
+    It does not load any extra information and its purpose is to get convinient structure for further processing.
 
-def build_core_model_from_ws_result(ws_result_entities:list[object]):
+    :param ws_result_entities: a list of wo as it is returned by the web service (getResult / searchResult)
     
+   result: produce a json value frame of the work oders and 2x extra frames to store report and report images
+    - wo_core : This the reference/fact table wich contains core order informations without the report fields
+                every row represent a work order
+
+    - wo_report : This contains all report information. Mostly a column with all report fields value as json and an uuid
+                  that will help getting the pdf report binary
+                  every row represent a work order report
+    
+    - wo_report_imgs : This contains all report field images information
+                        every row represent an image field with its field code and url
+
+    '''
+
+    '''
+    Data frame schemas
+    '''
+
+    ''' wo_core 
+    The schema for the wo_core frame is entierly deduce automatically from the soap ws result.
+    The input structure is "flatenized" by the json_normalize() method
+    The following identifyer are the few necessary colums id to be able to split wo an wo report
+    '''
+    REF_WO_CORE_ID_COL           = 'id'
+    REF_WO_CORE_EXTENSION_COL    = 'extensions'
+    REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
+
+
+    ''' wo_report
+    '''
+    WO_REPORT_ID_COL         = 'wo_id'
+    WO_REPORT_UUID_COL       = 'wo_uuid'
+    WO_REPORT_FIELDS_COL     = 'wo_report_fields'
+    WO_REPORT_PDF_BIN_COL    = 'wo_report_pdf_bin'
+
+    ''' wo_report_imgs
+    '''
+    WO_REPORT_IMGS_ID           = 'wo_id'
+    WO_REPORT_IMGS_FIELD_ID     = 'wo_report_field_id'
+    WO_REPORT_IMGS_URL_COL      = 'wo_report_img_url'
+    WO_REPORT_IMGS_BIN_COL      = 'wo_report_img_bin'
+
+
     # convert zeep objects to native python structures
     pyObj_entities = zeepHelper.serialize_object(ws_result_entities)
 
-    # building a data frame out of the result. level = 1 is enough to have a natural accesss to useful fields
+    # building a data frame out of the result. 
+    # level = 2 is enough to get enough useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
+    # this serialize only "complex" structure to json
     def convert_complex_val_to_json(value):
         if isinstance(value,(list,dict)):
             if len(value) > 0:
@@ -35,26 +74,14 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
 
     df_wo_core = df_wo_core.map(convert_complex_val_to_json)
 
-    # transforming the resulting data frame to match the "core model" which consist in 4x tables
-    # [1] wo_core  
-    # [2] wo_attach
-    # [3] wo_report
-    # [4] wo_report_imgs
 
     # [1] - Building the wo_report frame
     # creating the table by copying the work order "id"
-    WO_CORE_ID_COL           = 'id'
-    WO_CORE_EXTENSION_COL    = 'extensions'
-    WO_CORE_FIELDS_COL       = 'completionData.fields'
-
-    WO_REPORT_ID_COL         = 'wo_id'
-    WO_REPORT_UUID_COL       = 'wo_uuid'
-    WO_REPORT_FIELDS_COL     = 'wo_report_fields'
-    WO_REPORT_PDF_BIN_COL    = 'wo_report_pdf_bin'
 
     df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_UUID_COL,WO_REPORT_FIELDS_COL,WO_REPORT_PDF_BIN_COL])
-    df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[WO_CORE_ID_COL]]
+    df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[REF_WO_CORE_ID_COL]]
 
+    # extract the uuid from the "extensions" wo property
     def extract_uuid(json_val):
         query = Query(orjson.loads(json_val))
         uuid_prop = query.where("key == businessEvent.extension.uuid").tolist()
@@ -63,10 +90,12 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
             return return_val
         return 'null'
 
-    df_wo_report[WO_REPORT_UUID_COL] = df_wo_core[WO_CORE_EXTENSION_COL].apply(extract_uuid)
+    df_wo_report[WO_REPORT_UUID_COL] = df_wo_core[REF_WO_CORE_EXTENSION_COL].apply(extract_uuid)
 
-    df_wo_report[WO_REPORT_FIELDS_COL] = df_wo_core[WO_CORE_FIELDS_COL].copy()
-    df_wo_core.drop(columns=[WO_CORE_FIELDS_COL])
+    df_wo_report[WO_REPORT_FIELDS_COL] = df_wo_core[REF_WO_CORE_FIELDS_COL].copy()
+
+    # dropping the report fields column from the original frame
+    df_wo_core.drop(columns=[REF_WO_CORE_FIELDS_COL])
 
     # define an empty pdf report column
     df_wo_report[WO_REPORT_PDF_BIN_COL] = None
@@ -76,10 +105,6 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
 
     
     # [2] Building the wo_report_img data frame
-    WO_REPORT_IMGS_ID           = 'wo_id'
-    WO_REPORT_IMGS_FIELD_ID     = 'wo_report_field_id'
-    WO_REPORT_IMGS_URL_COL      = 'wo_report_img_url'
-    WO_REPORT_IMGS_BIN_COL      = 'wo_report_img_bin'
     df_wo_report_imgs = pd.DataFrame(columns=[WO_REPORT_IMGS_ID,WO_REPORT_IMGS_FIELD_ID,WO_REPORT_IMGS_URL_COL,WO_REPORT_IMGS_BIN_COL])
 
     for index, row in df_wo_report.iterrows():
@@ -91,3 +116,9 @@ def build_core_model_from_ws_result(ws_result_entities:list[object]):
     
     print('*** wo_report_imgs ****')
     print(df_wo_report_imgs)
+
+    # returning a named tuple with a the reference to the 3x frame
+    Result = namedtuple('result',['wo_core','wo_report','wo_report_imgs'])
+    result = Result(wo_core = df_wo_core, wo_core_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
+
+    return result

@@ -57,8 +57,14 @@ if __name__ == "__main__":
     srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,CREATION_DATE,EXTENDED_RESULTS) # type: ignore
     
     print(f'srch_evt_results : len = {len(srch_evt_results.entities)}')
-    srch_evt_results.entities[0].completionData.fields = None
-    pprint(srch_evt_results)
+    # srch_evt_results.entities[0].completionData.fields = None
+    
+    for idx, biz_evt in enumerate(srch_evt_results.entities) :
+        #if biz_evt.status == 'CANCELED':
+        pprint(f'idx:{idx} id: {biz_evt.id} status:{biz_evt.status}')
+
+    #pprint(srch_evt_results.entities[0])
+
     
     # Ws utility trials
    #  build_core_model_from_ws_result(srch_evt_results)

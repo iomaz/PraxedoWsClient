@@ -1,0 +1,13 @@
+
+[project]
+name = "praxedo_web_service"
+version = "0.0.0"
+description = "A package to handle Praxedo Web Services"
+authors = [{ name = "IoMaz", email = "dizuzio@perso.ch" }]
+dependencies = ["pandas",
+                "zeep",
+                "orjson",
+                "jsonq",
+                "python-jsonpath"
+                ]
+
