@@ -37,12 +37,18 @@ def get_url_content(arg_url):
 
 class PraxedoSoapClient:
      
+    class WSDL_DEFAULT(NamedTuple):
+        BIZ_EVT         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
+        BIZ_EVT_ATTACH  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
+
     class WsCredential(NamedTuple):
         usr : str
         psw : str
      
-    def __init__(self, biz_evt_wsdl_url:str, biz_attach_wsdl_url:str, ws_credential_arg : WsCredential):
-    
+    def __init__(self,  ws_credential_arg : WsCredential, 
+                        biz_evt_wsdl_url:str    = WSDL_DEFAULT.BIZ_EVT,
+                        biz_attach_wsdl_url:str = WSDL_DEFAULT.BIZ_EVT_ATTACH):
+        
         self.biz_evt_wsdl_url       = biz_evt_wsdl_url
         self.biz_attach_wsdl_url    = biz_attach_wsdl_url
         self.ws_credential          = ws_credential_arg

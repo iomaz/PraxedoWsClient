@@ -12,8 +12,8 @@ import sqlite3
 import orjson
 
 # local imports
-from praxedo_ws.soap_client.soap_client import PraxedoSoapClient
-from praxedo_ws.ws_utility.ws_utility import *
+from praxedo_ws import PraxedoSoapClient
+from praxedo_ws import ws_utility
 
 # Praxedo Qual credential
 QUAL_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
@@ -22,17 +22,15 @@ QUAL_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
 PROD_AUTH = PraxedoSoapClient.WsCredential(usr='WSDEM',
                                            psw='WsdemWsdem2358')
 
-BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
-BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
+#BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
+#BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
 
 if __name__ == "__main__":
     
     print('program start')
     
     # creating a new Praxedo web service client
-    praxWsClient = PraxedoSoapClient(BIZ_EVT_WSDL_URL,
-                                     BIZ_EVT_ATTACH_WSDL_URL,
-                                     QUAL_AUTH)
+    praxWsClient = PraxedoSoapClient(QUAL_AUTH)
     
     # opening a connection
     praxWsClient.open_connection()
@@ -47,8 +45,8 @@ if __name__ == "__main__":
     #with open(f'fields.json', "w", encoding="utf-8") as file:
     #    file.write(orjson.dumps(pyobj_fields).decode('utf-8'))
     
-    week52_2024    = get_date_range_from_week_nbr(52,2024)
-    week1_2025     = get_date_range_from_week_nbr(1,2025)
+    week52_2024    = ws_utility.get_date_range_from_week_nbr(52,2024)
+    week1_2025     = ws_utility.get_date_range_from_week_nbr(1,2025)
     
     print(f'week 52 2024 {week52_2024}')
     print(f'week 1 2025 {week1_2025}')
