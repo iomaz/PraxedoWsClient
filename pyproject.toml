@@ -1,8 +1,12 @@
 
+[build-system]
+requires = ["setuptools>=80.0.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "praxedo_web_service"
 version = "0.0.0"
-description = "A Praxedo SOAP Web Services client "
+description = "A Praxedo SOAP Web Services client and utility"
 authors = [{ name = "IoMaz", email = "dizuzio@perso.ch" }]
 dependencies = ["pandas",
                 "zeep",
