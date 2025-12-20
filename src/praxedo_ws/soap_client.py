@@ -37,7 +37,7 @@ def get_url_content(arg_url):
 
 class PraxedoSoapClient:
      
-    class WSDL_DEFAULT(NamedTuple):
+    class DEFAULT_WSDL(NamedTuple):
         BIZ_EVT         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
         BIZ_EVT_ATTACH  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
 
@@ -45,14 +45,13 @@ class PraxedoSoapClient:
         usr : str
         psw : str
      
-    def __init__(self,  ws_credential_arg : WsCredential, 
-                        biz_evt_wsdl_url:str    = WSDL_DEFAULT.BIZ_EVT,
-                        biz_attach_wsdl_url:str = WSDL_DEFAULT.BIZ_EVT_ATTACH):
+    def __init__(self,  biz_evt_wsdl_url:str    = DEFAULT_WSDL.BIZ_EVT,
+                        biz_attach_wsdl_url:str = DEFAULT_WSDL.BIZ_EVT_ATTACH):
         
         self.biz_evt_wsdl_url       = biz_evt_wsdl_url
         self.biz_attach_wsdl_url    = biz_attach_wsdl_url
-        self.ws_credential          = ws_credential_arg
         
+        self.ws_credential              : PraxedoSoapClient.WsCredential
         self.http_session               : Session
         self.bizEvt_tranport            : Transport
         self.bizEvt_client              : Client # zeep client for business events management
@@ -61,9 +60,12 @@ class PraxedoSoapClient:
         
         self.searchAbort          = False
     
-    def open_connection(self):
+    def open_connection(self,ws_credential_arg : WsCredential):
         """ Connect to the the service endpoint using the Zeep lib
         """
+
+        self.ws_credential = ws_credential_arg
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             

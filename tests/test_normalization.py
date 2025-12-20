@@ -30,10 +30,10 @@ if __name__ == "__main__":
     print('program start')
     
     # creating a new Praxedo web service client
-    praxWsClient = PraxedoSoapClient(QUAL_AUTH)
+    praxWsClient = PraxedoSoapClient()
     
     # opening a connection
-    praxWsClient.open_connection()
+    praxWsClient.open_connection(QUAL_AUTH)
     
     # requesting a business event
     #get_evt_results = praxWsClient.get_bizEvt(['83007173'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
