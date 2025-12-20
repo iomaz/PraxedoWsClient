@@ -8,7 +8,7 @@ from enum import Enum, unique
 from pprint import pprint
 
 # local imports
-from praxedo_ws.soap_client import PraxedoSoapClient
+from praxedo_ws.soap_client.soap_client import PraxedoSoapClient
 
 
 

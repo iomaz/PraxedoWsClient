@@ -7,7 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from pprint import pprint
 
 # local imports
-from praxedo_ws.soap_client import PraxedoSoapClient
+from praxedo_ws.soap_client.soap_client import PraxedoSoapClient
 
 if __name__ == "__main__":
     print('program start')

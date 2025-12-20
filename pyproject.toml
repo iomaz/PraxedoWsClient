@@ -2,7 +2,7 @@
 [project]
 name = "praxedo_web_service"
 version = "0.0.0"
-description = "A package to handle Praxedo Web Services"
+description = "A Praxedo SOAP Web Services client "
 authors = [{ name = "IoMaz", email = "dizuzio@perso.ch" }]
 dependencies = ["pandas",
                 "zeep",
@@ -11,3 +11,8 @@ dependencies = ["pandas",
                 "python-jsonpath"
                 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -12,8 +12,8 @@ import sqlite3
 import orjson
 
 # local imports
-from praxedo_ws.soap_client import PraxedoSoapClient
-from praxedo_ws.ws_utility import *
+from praxedo_ws.soap_client.soap_client import PraxedoSoapClient
+from praxedo_ws.ws_utility.ws_utility import *
 
 # Praxedo Qual credential
 QUAL_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
