@@ -60,7 +60,7 @@ class PraxedoSoapClient:
         
         self.searchAbort          = False
     
-    def open_connection(self,ws_credential_arg : WsCredential):
+    def connect(self,ws_credential_arg : WsCredential):
         """ Connect to the the service endpoint using the Zeep lib
         """
 
