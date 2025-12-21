@@ -60,9 +60,9 @@ def get_wo_raw_model(ws_result_entities:list[object]):
     '''
 
     ''' wo_core 
-    The schema for the wo_core frame is entierly deduce automatically from the soap ws result.
-    The input structure is "flatenized" by the json_normalize() method
-    The following identifyer are the few necessary colums id to be able to split wo an wo report
+    The schema for the wo_core frame is entierly defined by the soap result.
+    The result is then "flatenized" by the json_normalize() method
+    The following identifyer are the few necessary colums id to allow the separaration of wo_report from the wo_core
     '''
     REF_WO_CORE_ID_COL           = 'id'
     REF_WO_CORE_EXTENSION_COL    = 'extensions'
@@ -91,8 +91,8 @@ def get_wo_raw_model(ws_result_entities:list[object]):
     # level = 2 is enough to get enough useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
-    # this serialize only "complex" structure to json
-    def convert_complex_val_to_json(value):
+    # this serialize non primitive value to json
+    def convert_struct_to_json(value):
         if isinstance(value,(list,dict)):
             if len(value) > 0:
                 json_val = orjson.dumps(value, default= lambda val : 'null').decode('utf-8').strip('"')
@@ -100,7 +100,7 @@ def get_wo_raw_model(ws_result_entities:list[object]):
             else: return None
         else: return value
 
-    df_wo_core = df_wo_core.map(convert_complex_val_to_json)
+    df_wo_core = df_wo_core.map(convert_struct_to_json)
 
 
     # [1] - Building the wo_report frame
