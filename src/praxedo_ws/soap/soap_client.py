@@ -98,7 +98,7 @@ class PraxedoSoapClient:
         LASTMODIFI      =   'lastModificationDate'
     
     
-    class BIZ_EVT_STATUS(Enum):
+    class WORK_ORDER_STATUS(Enum):
         NEW             = 0
         QUALIFIED       = 1
         PRE_SCHEDULED   = 2
@@ -110,8 +110,8 @@ class PraxedoSoapClient:
 
     
     # if not completion date is found and the status is "COMPLETED" or "VALIDATED" then the real status is "CANCELLED"
-    def identify_cancel_status(self, entities_list:list):
-        STATUS = PraxedoSoapClient.BIZ_EVT_STATUS
+    def set_cancel_status(self, entities_list:list):
+        STATUS = PraxedoSoapClient.WORK_ORDER_STATUS
         for biz_evt in entities_list:
             comp_date = False
             for date in biz_evt.completionData.lifecycleTransitionDates : 
@@ -148,7 +148,7 @@ class PraxedoSoapClient:
         #   file.write(singleBisEvtAttach.content)
     
     
-    class GET_BIZEVT_RESULT_CODE(Enum) :
+    class GET_WO_RESULT_CODE(Enum) :
         SUCCESS                     =  0
         INTERNAL_ERROR              =  1
         UNCOMPLETE_REQUEST          = 50                   
@@ -185,7 +185,7 @@ class PraxedoSoapClient:
         """
     
     
-    class GET_BIZEVT_POPUL_OPT_SET(NamedTuple):
+    class GET_WO_RESULT_OPTION(NamedTuple):
 
         class OPTIONS(NamedTuple):
             prefix = 'businessEvent.populate.'
@@ -210,9 +210,9 @@ class PraxedoSoapClient:
     
     
     
-    def get_bizEvt(self,evt_id_list : list[str], populate_opt = GET_BIZEVT_POPUL_OPT_SET.BASIC):
+    def get_work_orders(self,evt_id_list : list[str], populate_opt = GET_WO_RESULT_OPTION.BASIC):
 
-        RESULT_CODE = PraxedoSoapClient.GET_BIZEVT_RESULT_CODE
+        RESULT_CODE = PraxedoSoapClient.GET_WO_RESULT_CODE
         
         populate_opt_arg =  populate_opt
         
@@ -225,12 +225,12 @@ class PraxedoSoapClient:
         
         if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
 
-        self.identify_cancel_status(get_evt_result.entities)
+        self.set_cancel_status(get_evt_result.entities)
 
         return get_evt_result
     
     
-    class SRCH_BIZEVT_POPUL_OPT_SET(NamedTuple):
+    class SRCH_WO_RESULT_OPTION(NamedTuple):
 
         """
         #region
@@ -281,7 +281,7 @@ class PraxedoSoapClient:
                                   ]
     
     
-    class SRCH_BIZEVT_RET_CODE(Enum):    
+    class SRCH_WO_RETURN_CODE(Enum):    
         SUCESS                  =  0 
         INTERNAL_ERROR          =  1
         MISSING_REQUEST_PARAM   =  151
@@ -297,9 +297,9 @@ class PraxedoSoapClient:
         self.searchAbort = True
     
     
-    def search_bizEvts(self, arg_start_date:datetime, arg_stop_date:datetime,
-                            arg_date_constraint:DATE_CONSTRAINT, 
-                            arg_populate_opt=SRCH_BIZEVT_POPUL_OPT_SET.BASIC):
+    def search_work_orders(self,arg_date_constraint:DATE_CONSTRAINT,
+                                arg_start_date:datetime, arg_stop_date:datetime,
+                                arg_populate_opt=SRCH_WO_RESULT_OPTION.BASIC):
         
         
         MAX_RESULTS_PER_PAGE = 50  #This is the actual maximum limit allowed by Praxedo
@@ -329,16 +329,17 @@ class PraxedoSoapClient:
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                
+                print(f'search_bizEvts: page {resp_page_nbr}')
                 search_results = self.bizEvt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,arg_populate_opt)
             
-            return_code = PraxedoSoapClient.SRCH_BIZEVT_RET_CODE(search_results.resultCode)
+            return_code = PraxedoSoapClient.SRCH_WO_RETURN_CODE(search_results.resultCode)
             match return_code : 
-                case PraxedoSoapClient.SRCH_BIZEVT_RET_CODE.SUCESS :
+                case PraxedoSoapClient.SRCH_WO_RETURN_CODE.SUCESS :
                     total_entities_results += search_results.entities
                     search_results.entities = total_entities_results
                     break
                 
-                case PraxedoSoapClient.SRCH_BIZEVT_RET_CODE.PARTIAL_RESULT :
+                case PraxedoSoapClient.SRCH_WO_RETURN_CODE.PARTIAL_RESULT :
                     if not self.searchAbort :
                         resp_page_nbr += 1
                         first_result_idx += MAX_RESULTS_PER_PAGE # incrementing the first index for a multipage result 
@@ -355,7 +356,7 @@ class PraxedoSoapClient:
                     print(f'searchEvents() service returned an error: {return_code} ')
                     break
         
-        self.identify_cancel_status(search_results.entities)
+        self.set_cancel_status(search_results.entities)
 
         return search_results
     

@@ -22,9 +22,6 @@ QUAL_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
 PROD_AUTH = PraxedoSoapClient.WsCredential(usr='WSDEM',
                                            psw='WsdemWsdem2358')
 
-#BIZ_EVT_WSDL_URL         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
-#BIZ_EVT_ATTACH_WSDL_URL  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
-
 if __name__ == "__main__":
     
     print('program start')
@@ -57,8 +54,8 @@ if __name__ == "__main__":
     srch_stop = datetime.strptime('10/07/25 9:40','%d/%m/%y %H:%M')
     COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
     CREATION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.CREATION
-    EXTENDED_RESULTS = PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED
-    srch_evt_results = praxWsClient.search_bizEvts(srch_start, srch_stop,CREATION_DATE,EXTENDED_RESULTS) # type: ignore
+    EXTENDED_RESULTS = PraxedoSoapClient.SRCH_WO_RESULT_OPTION.EXTENDED
+    srch_evt_results = praxWsClient.search_work_orders(srch_start, srch_stop,CREATION_DATE,EXTENDED_RESULTS) # type: ignore
     
     print(f'srch_evt_results : len = {len(srch_evt_results.entities)}')
     # srch_evt_results.entities[0].completionData.fields = None
