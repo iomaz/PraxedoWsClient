@@ -12,8 +12,8 @@ import sqlite3
 import orjson
 
 # local imports
-from src.praxedo_ws.soap import PraxedoSoapClient
-from src.praxedo_ws.utility import *
+from praxedo_ws.soap import PraxedoSoapClient
+from praxedo_ws.utility import *
 
 # Praxedo Qual credential
 QUAL_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
@@ -42,11 +42,11 @@ if __name__ == "__main__":
     #with open(f'fields.json', "w", encoding="utf-8") as file:
     #    file.write(orjson.dumps(pyobj_fields).decode('utf-8'))
     
-    week52_2024    = ws_utility.date_range_from_week(52,2024)
-    week1_2025     = ws_utility.date_range_from_week(1,2025)
+    #week52_2024    = ws_utility.get_week_sequence(52,2024)
+    last_2025_week  = ws_utility.get_week_sequence(52,2025)
     
-    print(f'week 52 2024 {week52_2024}')
-    print(f'week 1 2025 {week1_2025}')
+    print(f'last 2025 week : {last_2025_week}')
+    
     
     exit()
     

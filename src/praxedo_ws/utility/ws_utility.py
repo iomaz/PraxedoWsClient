@@ -6,32 +6,29 @@ from jsonQ import Query
 import jsonpath
 
 
-from datetime import date, timedelta
+from datetime import date, time, datetime, timedelta
 
-def date_range_from_week(week: int, year: int):
+def get_week_sequence(week: int, year: int):
     """
-    Return the (start_date, end_date) for an ISO week.
-    ISO week starts on Monday (weekday=1) and ends on Sunday (weekday=7).
+    
     """
     # Monday of the ISO week
-    start = date.fromisocalendar(year, week, 1)  # 1 = Monday
-    start = start - timedelta(days=1)
-    end   = start + timedelta(days=7)
-    return start, end
+    one_day = timedelta(days=1)
+    start_day = date.fromisocalendar(year, week, 1) - one_day  # the Sunday of the given week
+    start_day = datetime.combine(start_day,time(hour=23, minute=59, second=0))
+
+    days = [(start_day, start_day + one_day)]
+    for idx in range(6):
+        last = days[-1]
+        days += [(last[1], last[1] + one_day)]
 
 
-def get_dates_from_week(week : int, year: int):
-    
-    jan1 = date(year, 1, 1)
-    # Move back to the most recent Sunday (including Jan 1 if it is Sunday)
-    offset = (jan1.weekday() - 6) % 7
-    first_sunday = jan1 - timedelta(days=offset)
+    return days
 
-    # Compute start Sunday for the requested week
-    start_sunday = first_sunday + timedelta(weeks=week - 1)
-    next_sunday = start_sunday + timedelta(days=7)
+def fetch_work_orders_whole_week_(arg_week_nbr:int, arg_year:int):
+    pass
 
-    return start_sunday, next_sunday
+
 
 
 def get_wo_raw_model(ws_result_entities:list[object]):
