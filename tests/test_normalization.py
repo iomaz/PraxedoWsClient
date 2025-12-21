@@ -12,7 +12,7 @@ import sqlite3
 import orjson
 
 # local imports
-from praxedo_ws import PraxedoSoapClient
+from praxedo_ws.utility import PraxedoSoapClient
 from praxedo_ws import ws_utility
 
 # Praxedo Qual credential
