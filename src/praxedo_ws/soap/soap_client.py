@@ -288,7 +288,7 @@ class PraxedoSoapClient:
         MISSING_DATE_INPUT      =  152
         INCOMPLETE_DATE_INPUT   =  153
         ONE_DATE_INPUT_INVALID  =  154
-        RESULTS_GREATER_1000    =  155
+        RESULTS_GREATER_2000    =  155
         UNKNOWN_CONTRACT        =  157
         PARTIAL_RESULT          =  200
                                  
@@ -353,7 +353,7 @@ class PraxedoSoapClient:
                         break
                 
                 case _: # in case of an error
-                    print(f'searchEvents() service returned an error: {return_code} ')
+                    print(f'searchEvents() service returned an error: {return_code.name} ')
                     break
         
         self.set_cancel_status(search_results.entities)
