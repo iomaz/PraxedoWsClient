@@ -8,7 +8,7 @@ import jsonpath
 
 from datetime import date, timedelta
 
-def get_date_range_from_week_nbr(week: int, year: int):
+def date_range_from_week(week: int, year: int):
     """
     Return the (start_date, end_date) for an ISO week.
     ISO week starts on Monday (weekday=1) and ends on Sunday (weekday=7).
@@ -37,21 +37,21 @@ def get_dates_from_week(week : int, year: int):
 def get_wo_raw_model(ws_result_entities:list[object]):
     '''
     The function basically process a raw SOAP web service response and separate work order and work order report information
-    The result is a "raw model" with 3x tables
+    The result is a "ws raw model" with 3x tables
     It does not load any extra information and its purpose is to get convinient structure for further processing.
 
     :param ws_result_entities: a list of wo as it is returned by the web service (getResult / searchResult)
     
    result: produce a json value frame of the work oders and 2x extra frames to store report and report images
-    - wo_core : This the reference/fact table wich contains core order informations without the report fields
+    - wo_core : This is the reference/fact table wich contains core work order informations without the report fields
                 every row represent a work order
 
     - wo_report : This contains all report information. Mostly a column with all report fields value as json and an uuid
-                  that will help getting the pdf report binary
+                  that is useful to get the work order report pdf
                   every row represent a work order report
     
     - wo_report_imgs : This contains all report field images information
-                        every row represent an image field with its field code and url
+                        every row correspond to a work order report and represent an image field with its field code and url
 
     '''
 
