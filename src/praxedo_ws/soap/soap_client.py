@@ -304,9 +304,9 @@ class PraxedoSoapClient:
         
         MAX_RESULTS_PER_PAGE = 50  #This is the actual maximum limit allowed by Praxedo
         RETURN_CODE = PraxedoSoapClient.SRCH_WO_RETURN_CODE
-        print(f'search_bizEvts:')
+        print('search_work_orders:')
         
-        requestArg =  {
+        ws_search_events_arg =  {
                             "typeConstraint"   :   [],
                             "dateConstraints"  :   [
                                         {"name": arg_date_constraint,
@@ -330,8 +330,8 @@ class PraxedoSoapClient:
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                
-                print(f'search_bizEvts: page {resp_page_nbr}')
-                search_results = self.bizEvt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,arg_populate_opt)
+                print(f'search_work_orders: page {resp_page_nbr}')
+                search_results = self.bizEvt_client.service.searchEvents(ws_search_events_arg,MAX_RESULTS_PER_PAGE,first_result_idx,arg_populate_opt)
             
             return_code = RETURN_CODE(search_results.resultCode)
             match return_code : 
@@ -346,13 +346,13 @@ class PraxedoSoapClient:
                         total_entities += search_results.entities
                         continue    
                     else :
-                        print('ws_searchEvents aborted !')
+                        print('search_work_orders: aborted !')
                         total_entities += search_results.entities
                         self.searchAbort = False
                         break
                 
                 case _: # in case of an error
-                    print(f'searchEvents() service returned an error: {return_code.name} ')
+                    print(f'search_work_orders: service returned an error: {return_code.name} ')
                     break
         
         self.identify_and_set_cancel_status(search_results.entities)
