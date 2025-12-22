@@ -43,7 +43,7 @@ if __name__ == "__main__":
     #    file.write(orjson.dumps(pyobj_fields).decode('utf-8'))
     
     #week52_2024    = ws_utility.get_week_sequence(52,2024)
-    last_2025_week  = ws_utility.get_week_sequence(52,2025)
+    last_2025_week  = ws_utility.get_week_days(52,2025)
     
     print(f'last 2025 week : {last_2025_week}')
     

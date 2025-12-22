@@ -8,7 +8,7 @@ import jsonpath
 
 from datetime import date, time, datetime, timedelta
 
-def get_week_sequence(week: int, year: int):
+def get_week_days(week: int, year: int):
     """
     
     """
@@ -25,18 +25,14 @@ def get_week_sequence(week: int, year: int):
 
     return days
 
-def fetch_work_orders_whole_week_(arg_week_nbr:int, arg_year:int):
-    pass
 
-
-
-
-def get_wo_raw_model(ws_result_entities:list[object]):
+def normalize_result(arg_wo_entities_list:list[object]):
     '''
-    The function basically process a raw SOAP web service response and separate work order and work order report information
-    The result is a "ws raw model" with 3x tables
-    It does not load any extra information and its purpose is to get convinient structure for further processing.
+    The function basically normalize a raw SOAP web service response to separate work order and work order report information
+    The returned result is a "normalized model" with 3x frames
+    It does not load any extra information as its purpose is only to get convinient structure for further processing.
 
+    Input / argument
     :param ws_result_entities: a list of wo as it is returned by the web service (getResult / searchResult)
     
    result: produce a json value frame of the work oders and 2x extra frames to store report and report images
@@ -82,7 +78,7 @@ def get_wo_raw_model(ws_result_entities:list[object]):
 
 
     # convert zeep objects to native python structures
-    pyObj_entities = zeepHelper.serialize_object(ws_result_entities)
+    pyObj_entities = zeepHelper.serialize_object(arg_wo_entities_list)
 
     # building a data frame out of the result. 
     # level = 2 is enough to get enough useful columns

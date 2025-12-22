@@ -110,7 +110,7 @@ class PraxedoSoapClient:
 
     
     # if not completion date is found and the status is "COMPLETED" or "VALIDATED" then the real status is "CANCELLED"
-    def set_cancel_status(self, entities_list:list):
+    def identify_and_set_cancel_status(self, entities_list:list):
         STATUS = PraxedoSoapClient.WORK_ORDER_STATUS
         for biz_evt in entities_list:
             comp_date = False
@@ -225,7 +225,7 @@ class PraxedoSoapClient:
         
         if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
 
-        self.set_cancel_status(get_evt_result.entities)
+        self.identify_and_set_cancel_status(get_evt_result.entities)
 
         return get_evt_result
     
@@ -303,6 +303,7 @@ class PraxedoSoapClient:
         
         
         MAX_RESULTS_PER_PAGE = 50  #This is the actual maximum limit allowed by Praxedo
+        RETURN_CODE = PraxedoSoapClient.SRCH_WO_RETURN_CODE
         print(f'search_bizEvts:')
         
         requestArg =  {
@@ -321,7 +322,7 @@ class PraxedoSoapClient:
 
         resp_page_nbr      = 1
         first_result_idx   = 0
-        total_entities_results = []
+        total_entities = []
         
         # iterate over a multi-page response when applicable
         while True:
@@ -332,23 +333,21 @@ class PraxedoSoapClient:
                 print(f'search_bizEvts: page {resp_page_nbr}')
                 search_results = self.bizEvt_client.service.searchEvents(requestArg,MAX_RESULTS_PER_PAGE,first_result_idx,arg_populate_opt)
             
-            return_code = PraxedoSoapClient.SRCH_WO_RETURN_CODE(search_results.resultCode)
+            return_code = RETURN_CODE(search_results.resultCode)
             match return_code : 
-                case PraxedoSoapClient.SRCH_WO_RETURN_CODE.SUCESS :
-                    total_entities_results += search_results.entities
-                    search_results.entities = total_entities_results
+                case RETURN_CODE.SUCESS :
+                    total_entities += search_results.entities
                     break
                 
-                case PraxedoSoapClient.SRCH_WO_RETURN_CODE.PARTIAL_RESULT :
+                case RETURN_CODE.PARTIAL_RESULT :
                     if not self.searchAbort :
                         resp_page_nbr += 1
                         first_result_idx += MAX_RESULTS_PER_PAGE # incrementing the first index for a multipage result 
-                        total_entities_results += search_results.entities
+                        total_entities += search_results.entities
                         continue    
                     else :
                         print('ws_searchEvents aborted !')
-                        total_entities_results += search_results.entities
-                        search_results.entities = total_entities_results
+                        total_entities += search_results.entities
                         self.searchAbort = False
                         break
                 
@@ -356,9 +355,9 @@ class PraxedoSoapClient:
                     print(f'searchEvents() service returned an error: {return_code.name} ')
                     break
         
-        self.set_cancel_status(search_results.entities)
+        self.identify_and_set_cancel_status(search_results.entities)
 
-        return search_results
+        return total_entities
     
     
     
