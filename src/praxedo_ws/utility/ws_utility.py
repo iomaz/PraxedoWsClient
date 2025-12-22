@@ -10,7 +10,8 @@ from datetime import date, time, datetime, timedelta
 
 def get_week_days(week: int, year: int):
     """
-    
+    Return a sequence of datetime covering a given week
+    Each element of the sequence is a day period representing by a tuple (start_date, stop_date)
     """
     # Monday of the ISO week
     one_day = timedelta(days=1)
