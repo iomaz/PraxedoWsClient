@@ -1,3 +1,5 @@
+from pprint import pprint
+import sqlite3
 import os, sys
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -29,15 +31,39 @@ def fetch_work_order_week_by_day(arg_week_nbr:int, arg_year:int):
 
 week_duration = SimplePerfClock()
 day_duration = SimplePerfClock()
+nz_results = []
+total_wo_nbr = 0
 week_duration.start()
-total_wo_list = []
 day_duration.start()
 for idx, one_day_wo_list in enumerate(fetch_work_order_week_by_day(2,2025)):
+    result_size = len(one_day_wo_list)
+    if result_size > 0:
+        total_wo_nbr += result_size
+        # normalize the result
+        nz_result = normalize_ws_response_to_dataframe(one_day_wo_list)
+        # accumulate the results into a list
+        nz_results.append(nz_result)
+    
     day_duration.stop()
-    print(f'day {idx+1} : total duration : {day_duration.get_duration_str()} number of work orders: {len(one_day_wo_list)}')
-    total_wo_list += one_day_wo_list
+    print(f'day {idx+1}:total duration:{day_duration.get_duration_str()} number of work orders: {result_size}')
+    #if idx == 1 : break # DEBUG
     day_duration.start()
 
-week_duration.stop()
-print(f'total fetch duration : {week_duration.get_duration_str()}')
+# merging results
+wo_core         = pd.concat([elt.wo_core for elt in nz_results])
+wo_report       = pd.concat([elt.wo_report for elt in nz_results])
+wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
 
+week_duration.stop()
+print(f'total: wo nbr:{total_wo_nbr} fetch duration:{week_duration.get_duration_str()}')
+
+#print('total_result : wo_core frame')
+#print(total_wo_nz_result.wo_core)
+
+# write the result to db
+with sqlite3.connect(f'fetch_result.sqlite3') as conn:
+    wo_core.to_sql('wo_core',conn,if_exists='replace',index=False) # type: ignore
+    wo_report.to_sql('wo_report',conn,if_exists='replace',index=False) # type: ignore
+    wo_report_imgs.to_sql('wo_report_imgs',conn,if_exists='replace',index=False) # type: ignore
+
+# pprint(total_wo_nz_result)

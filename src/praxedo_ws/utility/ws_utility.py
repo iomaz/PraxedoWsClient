@@ -4,6 +4,7 @@ import pandas as pd
 import orjson
 from jsonQ import Query
 import jsonpath
+from typing import NamedTuple
 
 
 from datetime import date, time, datetime, timedelta
@@ -27,7 +28,16 @@ def get_week_days(week: int, year: int):
     return days
 
 
-def normalize_result(arg_wo_entities_list:list[object]):
+class NORMALIZED_DF_RESULT(NamedTuple):
+    wo_core         : pd.DataFrame
+    wo_report       : pd.DataFrame
+    wo_report_imgs  : pd.DataFrame
+
+    #def __add__(self,other):
+    #    return NORMALIZED_DF_RESULT(self.wo_core + other.wo_core, self.wo_report + other.wo_report, self.wo_report_imgs + other.wo_report_imgs)
+
+
+def normalize_ws_response_to_dataframe(arg_wo_entities_list:list[object]):
     '''
     The function basically normalize a raw SOAP web service response to separate work order and work order report information
     The returned result is a "normalized model" with 3x frames
@@ -62,7 +72,6 @@ def normalize_result(arg_wo_entities_list:list[object]):
     REF_WO_CORE_EXTENSION_COL    = 'extensions'
     REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
 
-
     ''' wo_report
     '''
     WO_REPORT_ID_COL         = 'wo_id'
@@ -84,6 +93,9 @@ def normalize_result(arg_wo_entities_list:list[object]):
     # building a data frame out of the result. 
     # level = 2 is enough to get enough useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
+
+    #print('*** wo_core ****')
+    #print(df_wo_core[REF_WO_CORE_FIELDS_COL])
 
     # this serialize non primitive value to json
     def convert_struct_to_json(value):
@@ -122,8 +134,8 @@ def normalize_result(arg_wo_entities_list:list[object]):
     # define an empty pdf report column
     df_wo_report[WO_REPORT_PDF_BIN_COL] = None
 
-    print('*** wo_report ****')
-    print(df_wo_report)
+    #print('*** wo_report ****')
+    #print(df_wo_report)
 
     
     # [2] Building the wo_report_img data frame
@@ -136,11 +148,11 @@ def normalize_result(arg_wo_entities_list:list[object]):
             img_url  = img_field['value'] # type: ignore
             df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [row[WO_REPORT_ID_COL],field_id,img_url,None]
     
-    print('*** wo_report_imgs ****')
-    print(df_wo_report_imgs)
+    #print('*** wo_report_imgs ****')
+    #print(df_wo_report_imgs)
 
     # returning a named tuple with a the reference to the 3x frame
-    Result = namedtuple('result',['wo_core','wo_report','wo_report_imgs'])
-    result = Result(wo_core = df_wo_core, wo_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
+    
+    result = NORMALIZED_DF_RESULT(wo_core = df_wo_core, wo_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
 
     return result
