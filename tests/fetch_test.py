@@ -40,9 +40,11 @@ for idx, one_day_wo_list in enumerate(fetch_work_order_week_by_day(2,2025)):
     if result_size > 0:
         total_wo_nbr += result_size
         # normalize the result
-        nz_result = normalize_ws_response_to_dataframe(one_day_wo_list)
+        nz_result = normalize_ws_response(one_day_wo_list)
         # accumulate the results into a list
         nz_results.append(nz_result)
+        # DEBUG
+        if idx == 0: break
     
     day_duration.stop()
     print(f'day {idx+1}:total duration:{day_duration.get_duration_str()} number of work orders: {result_size}')
@@ -56,6 +58,14 @@ wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
 
 week_duration.stop()
 print(f'total: wo nbr:{total_wo_nbr} fetch duration:{week_duration.get_duration_str()}')
+
+BASE_REPORT_FETCH_URL = 'https://eu6.praxedo.com/eTech'
+
+df_url = wo_report['wo_uuid'].map(lambda uuid : f'{BASE_REPORT_FETCH_URL}/rest/api/v1/workOrder/uuid:{uuid}/render')
+fetch_tuple_list = list(zip(wo_report['wo_id'],df_url))
+
+pprint(fetch_tuple_list)
+
 
 #print('total_result : wo_core frame')
 #print(total_wo_nz_result.wo_core)

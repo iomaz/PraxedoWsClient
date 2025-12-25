@@ -1,31 +1,85 @@
-from collections import namedtuple
+from typing import NamedTuple
+import warnings
 from zeep import helpers as zeepHelper
+import requests
 import pandas as pd
 import orjson
 from jsonQ import Query
 import jsonpath
-from typing import NamedTuple
-
-
+import time as sysTime
 from datetime import date, time, datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+
+
+def get_url_content(arg_url):
+    with warnings.catch_warnings():
+        MAX_RETRY = 2
+        retryCount = 0
+        warnings.simplefilter('ignore')
+        while retryCount <= 1 :   
+            result = requests.get(arg_url,verify=False)
+            retry = False
+            match result.status_code:
+                case 200 : break # fine
+                case _ if result.status_code != 429 :
+                    print(f"Failed to download !: ErrCode:{result.status_code} Reason={result.reason} (url)={arg_url[-38:]}")
+                    return None
+                case 429 : # too many requests
+                    retryCount += 1
+                    if retryCount >= MAX_RETRY : 
+                        print('Max retry errors : return None...')
+                        return None
+                    else : 
+                        print('get_url_content():Err 429 - too many requests- wait and retry...')
+                        sysTime.sleep(5)
+        
+    return result.content
+
+
+class UrlToFetch(NamedTuple):
+    id  : str
+    url : str
+
+@dataclass
+class UrlContent:
+    id : str
+    bin : bytes
+
+def multi_fetch_url(arg_url_list : list[UrlToFetch]):
+    BATCH_SIZE = 20
+    # splitting the list into fetch batches
+    fetch_batchs = [arg_url_list[i:i + BATCH_SIZE] for i in range(0, len(arg_url_list), BATCH_SIZE)]
+
+    for idx, fetch_batch in enumerate(fetch_batchs):
+            
+        print(f'\rprocessing batch : {idx}/{len(fetch_batchs)} ',end='',flush=True)
+        
+        url_list = [url_tuple.url for url_tuple in fetch_batch] # extracting the url list from tuple
+        # downloading a chunck of url concurently
+        with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
+            url_contents = list(executor.map(get_url_content, url_list))
+
+        result = [UrlContent(id=fetch_batch[idx].id, bin=url_content) for idx, url_content in enumerate(url_contents)] # type: ignore
+
+    return result
+
 
 def get_week_days(week: int, year: int):
     """
-    Return a sequence of datetime covering a given week
+    Return a sequence of tuple covering a given week
     Each element of the sequence is a day period representing by a tuple (start_date, stop_date)
     """
-    # Monday of the ISO week
     one_day = timedelta(days=1)
     start_day = date.fromisocalendar(year, week, 1) - one_day  # the Sunday of the given week
     start_day = datetime.combine(start_day,time(hour=23, minute=59, second=0))
 
-    days = [(start_day, start_day + one_day)]
+    period_list = [(start_day, start_day + one_day)]
     for idx in range(6):
-        last = days[-1]
-        days += [(last[1], last[1] + one_day)]
+        last = period_list[-1] # latest element of the list
+        period_list += [(last[1], last[1] + one_day)]
 
-
-    return days
+    return period_list
 
 
 class NORMALIZED_DF_RESULT(NamedTuple):
@@ -33,11 +87,7 @@ class NORMALIZED_DF_RESULT(NamedTuple):
     wo_report       : pd.DataFrame
     wo_report_imgs  : pd.DataFrame
 
-    #def __add__(self,other):
-    #    return NORMALIZED_DF_RESULT(self.wo_core + other.wo_core, self.wo_report + other.wo_report, self.wo_report_imgs + other.wo_report_imgs)
-
-
-def normalize_ws_response_to_dataframe(arg_wo_entities_list:list[object]):
+def normalize_ws_response(arg_wo_entities_list:list[object]):
     '''
     The function basically normalize a raw SOAP web service response to separate work order and work order report information
     The returned result is a "normalized model" with 3x frames

@@ -1,6 +1,4 @@
 from typing import NamedTuple
-import time
-import requests
 from requests import Session
 from requests.auth import HTTPBasicAuth
 from zeep import Client
@@ -10,43 +8,19 @@ from enum import Enum
 import warnings
 
 
-def get_url_content(arg_url):
-    with warnings.catch_warnings():
-        MAX_RETRY = 2
-        retryCount = 0
-        warnings.simplefilter('ignore')
-        while retryCount <= 1 :   
-            req_result = requests.get(arg_url,verify=False)
-            retry = False
-            match req_result.status_code:
-                case 200 : break # fine
-                case _ if req_result.status_code != 429 :
-                    print(f"Failed to download !: ErrCode:{req_result.status_code} Reason={req_result.reason} (url)={arg_url[-38:]}")
-                    return None
-                case 429 : # too many requests
-                    retryCount += 1
-                    if retryCount >= MAX_RETRY : 
-                        print('Max retry errors : return None...')
-                        return None
-                    else : 
-                        print('get_url_content():Err 429 - too many requests- wait and retry...')
-                        time.sleep(5)
-        
-    return req_result.content
-
-
 class PraxedoSoapClient:
      
-    class DEFAULT_WSDL(NamedTuple):
-        BIZ_EVT         = "https://eu6.praxedo.com/eTech/services/cxf/v6.1/BusinessEventManager?wsdl"
-        BIZ_EVT_ATTACH  = 'https://eu6.praxedo.com/eTech/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
+    class DEFAULTS_URL(NamedTuple):
+        BASE_URL        = 'https://eu6.praxedo.com/eTech'
+        BIZ_EVT         = f'{BASE_URL}/services/cxf/v6.1/BusinessEventManager?wsdl'
+        BIZ_EVT_ATTACH  = f'{BASE_URL}/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
 
     class WsCredential(NamedTuple):
         usr : str
         psw : str
      
-    def __init__(self,  biz_evt_wsdl_url:str    = DEFAULT_WSDL.BIZ_EVT,
-                        biz_attach_wsdl_url:str = DEFAULT_WSDL.BIZ_EVT_ATTACH):
+    def __init__(self,  biz_evt_wsdl_url:str    = DEFAULTS_URL.BIZ_EVT,
+                        biz_attach_wsdl_url:str = DEFAULTS_URL.BIZ_EVT_ATTACH):
         
         self.biz_evt_wsdl_url       = biz_evt_wsdl_url
         self.biz_attach_wsdl_url    = biz_attach_wsdl_url
