@@ -44,7 +44,7 @@ if __name__ == "__main__":
     result = praxWsClient.search_work_orders(COMPLETION_DATE,srch_from, srch_to,EXTENDED_RESULT)  # type: ignore
 
     # printing the result
-    pprint(f'total wo nbr = {len(result.entities)}')
+    pprint(f'total wo nbr = {len(result)}')
     
     # closing the connection
     praxWsClient.close_connection()

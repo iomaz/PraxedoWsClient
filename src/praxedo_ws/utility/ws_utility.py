@@ -36,33 +36,22 @@ def get_url_content(arg_url):
         
     return result.content
 
-
-class UrlToFetch(NamedTuple):
-    id  : str
-    url : str
-
-@dataclass
-class UrlContent:
-    id : str
-    bin : bytes
-
-def multi_fetch_url(arg_url_list : list[UrlToFetch]):
-    BATCH_SIZE = 20
+def batch_fetch_url(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
+    #BATCH_SIZE = 20
     # splitting the list into fetch batches
-    fetch_batchs = [arg_url_list[i:i + BATCH_SIZE] for i in range(0, len(arg_url_list), BATCH_SIZE)]
+    fetch_batchs = [arg_url_list[i:i + arg_batch_size] for i in range(0, len(arg_url_list), arg_batch_size)]
 
     for idx, fetch_batch in enumerate(fetch_batchs):
             
-        print(f'\rprocessing batch : {idx}/{len(fetch_batchs)} ',end='',flush=True)
+        print(f'\rprocessing batch : {idx+1}/{len(fetch_batchs)} ',end='',flush=True)
         
-        url_list = [url_tuple.url for url_tuple in fetch_batch] # extracting the url list from tuple
+        url_list = [url_tuple[1] for url_tuple in fetch_batch] # extracting the url list from tuple
         # downloading a chunck of url concurently
-        with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
+        with ThreadPoolExecutor(max_workers=arg_batch_size) as executor:
             url_contents = list(executor.map(get_url_content, url_list))
 
-        result = [UrlContent(id=fetch_batch[idx].id, bin=url_content) for idx, url_content in enumerate(url_contents)] # type: ignore
-
-    return result
+        result = [(fetch_batch[idx][0], url_content) for idx, url_content in enumerate(url_contents)] # type: ignore
+        yield result
 
 
 def get_week_days(week: int, year: int):

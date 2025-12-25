@@ -1,4 +1,6 @@
 __pycache__
+dist
+*.pdf
 *.egg-info
 *.sqlite3
 *.txt

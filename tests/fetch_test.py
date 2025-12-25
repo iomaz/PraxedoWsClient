@@ -62,10 +62,17 @@ print(f'total: wo nbr:{total_wo_nbr} fetch duration:{week_duration.get_duration_
 BASE_REPORT_FETCH_URL = 'https://eu6.praxedo.com/eTech'
 
 df_url = wo_report['wo_uuid'].map(lambda uuid : f'{BASE_REPORT_FETCH_URL}/rest/api/v1/workOrder/uuid:{uuid}/render')
-fetch_tuple_list = list(zip(wo_report['wo_id'],df_url))
+wo_report_pdf_urls = list(zip(wo_report['wo_id'],df_url))
 
-pprint(fetch_tuple_list)
+#print(fetch_tuple_list)
 
+report_contents = next(batch_fetch_url(wo_report_pdf_urls,2))
+
+with open(f'OT_{report_contents[0][0]}.pdf', "wb") as file:
+    file.write(report_contents[0][1])
+
+
+exit()
 
 #print('total_result : wo_core frame')
 #print(total_wo_nz_result.wo_core)
