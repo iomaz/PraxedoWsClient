@@ -154,7 +154,9 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # create the uuid column
     df_extensions = df_wo_core[REF_WO_CORE_EXTENSION_COL].map(lambda xtsion_tab : { xtsion_prop['key'] : xtsion_prop['value'] for xtsion_prop in xtsion_tab} )
-    df_wo_core[WO_CORE_UUID_COL] = df_extensions.map(lambda xtsion_dict : xtsion_dict[WO_CORE_UUID_PROP] if WO_CORE_UUID_PROP in xtsion_dict else None)
+    df_uuid = df_extensions.map(lambda xtsion_dict : xtsion_dict[WO_CORE_UUID_PROP] if WO_CORE_UUID_PROP in xtsion_dict else None)
+    # insert the uuid column just after the extensions column
+    df_wo_core.insert(df_wo_core.columns.get_loc(REF_WO_CORE_EXTENSION_COL) + 1, WO_CORE_UUID_COL, df_uuid) # type: ignore
 
     # expand the content of the "lifecycleTransitionDates" column into the lifecycle dates columns  
     # first tranform the 'lifecycleTransitionDates" collection into a single dictionary 
