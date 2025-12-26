@@ -119,16 +119,16 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     WO_CORE_UUID_PROP            = 'businessEvent.extension.uuid'
 
     # lifecycle dates
-    class WO_CORE_LIFY_DATES_COL(Enum):
-        LIFCY_DATE_COMM         = 'communicationDate'
-        LIFCY_DATE_APP          = 'appointmentDate'
-        LIFCY_DATE_SCHED        = 'schedulingDate'
-        LIFCY_DATE_PDA_LOAD     = 'pdaLoadingDate'
-        LIFCY_DATE_PDA_UNLOAD   = 'pdaUnloadingDate'
-        LIFCY_DATE_START        = 'startDate'
-        LIFCY_DATE_COMPLE       = 'completionDate'
-        LIFCY_DATE_VALID        = 'validationDate'
-        LIFCY_DATE_LAST_MODI    = 'lastModificationDate' 
+    class WO_CORE_LIFCY_DATES_COL(Enum):
+        COMMUNI      = 'communicationDate'
+        APPOINT      = 'appointmentDate'
+        SCHEDU       = 'schedulingDate'
+        PDA_LOAD     = 'pdaLoadingDate'
+        PDA_UNLOAD   = 'pdaUnloadingDate'
+        START        = 'startDate'
+        COMPLETION   = 'completionDate'
+        VALIDATION   = 'validationDate'
+        LAST_MODI    = 'lastModificationDate' 
 
     ''' wo_report
     '''
@@ -163,7 +163,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     df_lifcy = df_wo_core[REF_WO_CORE_LIFCY_DATES_COL].map(lambda lifcy_tab : { lifcy_elt['name'] : lifcy_elt['date'] for lifcy_elt in lifcy_tab})
 
     # second, copy all date to every associated columns 
-    for lify_columns in WO_CORE_LIFY_DATES_COL :
+    for lify_columns in WO_CORE_LIFCY_DATES_COL :
         df_wo_core[lify_columns.value] = df_lifcy.map(lambda lifcy_dict : lifcy_dict[lify_columns.value] if lify_columns.value in lifcy_dict else None )
 
     # third, drop the lifcycleTransitionDates column
