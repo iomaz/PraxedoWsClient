@@ -71,8 +71,15 @@ if len(nz_results) > 0:
 if len(nz_results) > 0:
 # write the result to db
     with sqlite3.connect(f'fetch_result.sqlite3') as conn:
-        wo_core.to_sql('wo_core',conn,if_exists='replace',index=False) # type: ignore
-        wo_report.to_sql('wo_report',conn,if_exists='replace',index=False) # type: ignore
-        wo_report_imgs.to_sql('wo_report_imgs',conn,if_exists='replace',index=False) # type: ignore
+
+        # making the "id" column a primary key
+        wo_core_dtype = {'id': 'INTEGER PRIMARY KEY'}
+        wo_core.to_sql('wo_core', conn, dtype=wo_core_dtype, if_exists='replace',index=False) # type: ignore
+        
+        wo_report_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_core(id)'}
+        wo_report.to_sql('wo_report', conn, dtype=wo_report_dtype, if_exists='replace',index=False) # type: ignore
+
+        wo_report_imgs_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_report(wo_id)'}
+        wo_report_imgs.to_sql('wo_report_imgs', conn, dtype=wo_report_imgs_dtype, if_exists='replace',index=False) # type: ignore
 
 # pprint(total_wo_nz_result)

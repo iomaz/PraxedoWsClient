@@ -152,6 +152,10 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # level = 2 is enough to get enough useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
+    # move the "id" column to the first position
+    columns = [REF_WO_CORE_ID_COL] + [col for col in df_wo_core.columns if col != REF_WO_CORE_ID_COL]
+    df_wo_core = df_wo_core.reindex(columns=columns)
+
     # create the uuid column
     df_extensions = df_wo_core[REF_WO_CORE_EXTENSION_COL].map(lambda xtsion_tab : { xtsion_prop['key'] : xtsion_prop['value'] for xtsion_prop in xtsion_tab} )
     df_uuid = df_extensions.map(lambda xtsion_dict : xtsion_dict[WO_CORE_UUID_PROP] if WO_CORE_UUID_PROP in xtsion_dict else None)
