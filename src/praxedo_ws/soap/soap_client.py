@@ -96,6 +96,19 @@ class PraxedoSoapClient:
                     case STATUS.COMPLETED.name |STATUS.VALIDATED.name : biz_evt.status = STATUS.CANCELLED.name  
 
     
+    class ATTACH_INFO(NamedTuple):
+        id   : str
+        name : str
+        size : int 
+
+    def build_attachment_list(self,arg_evt_ext_id : int):
+        
+        result = []
+        native_attach_list = self.list_attachments(arg_evt_ext_id)
+        if len(native_attach_list) > 0:
+            result = [PraxedoSoapClient.ATTACH_INFO(id=attach_elt.id, name=attach_elt.name, size=attach_elt.size) for attach_elt in native_attach_list]
+        return result
+
     def list_attachments(self,arg_evt_ext_id):
         # print('ws_list_attachments()...')
     
@@ -104,7 +117,21 @@ class PraxedoSoapClient:
             list_attach_result = self.bizEvt_attach_client.service.listAttachments(arg_evt_ext_id)
         
         return list_attach_result.entities
-        
+
+
+    class ATTACH_CONTENT(NamedTuple):
+        id      : str
+        content : bytes
+
+    def fetch_attachments_contents(self, arg_attach_list: list[PraxedoSoapClient.ATTACH_INFO]):
+
+        result = [] 
+        for attach_info in arg_attach_list:
+            content = self.get_attachement_content(attach_info.id)
+            if len(content) > 0 :
+                result.append(PraxedoSoapClient.ATTACH_CONTENT(id=attach_info.id, content=content))
+
+        return result
     
     def get_attachement_content(self,arg_evt_attach_id):
         #print('ws_getAttachmentContent()...')
