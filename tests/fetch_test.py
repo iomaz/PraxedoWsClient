@@ -35,7 +35,7 @@ nz_results = []
 total_wo_nbr = 0
 week_duration.start()
 day_duration.start()
-for idx, one_day_wo_list in enumerate(fetch_work_order_week_by_day(2,2025)):
+for idx, one_day_wo_list in enumerate(fetch_work_order_week_by_day(4,2019)):
     result_size = len(one_day_wo_list)
     if result_size > 0:
         total_wo_nbr += result_size
@@ -52,35 +52,27 @@ for idx, one_day_wo_list in enumerate(fetch_work_order_week_by_day(2,2025)):
     day_duration.start()
 
 # merging results
-wo_core         = pd.concat([elt.wo_core for elt in nz_results])
-wo_report       = pd.concat([elt.wo_report for elt in nz_results])
-wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
+if len(nz_results) > 0:
+    wo_core         = pd.concat([elt.wo_core for elt in nz_results])
+    wo_report       = pd.concat([elt.wo_report for elt in nz_results])
+    wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
 
 week_duration.stop()
 print(f'total: wo nbr:{total_wo_nbr} fetch duration:{week_duration.get_duration_str()}')
 
-BASE_REPORT_FETCH_URL = 'https://eu6.praxedo.com/eTech'
+if len(nz_results) > 0:
+    wo_report_pdf_urls = list(zip(wo_report['wo_id'],wo_report['wo_report_url'])) # type: ignore
 
-df_url = wo_report['wo_uuid'].map(lambda uuid : f'{BASE_REPORT_FETCH_URL}/rest/api/v1/workOrder/uuid:{uuid}/render')
-wo_report_pdf_urls = list(zip(wo_report['wo_id'],df_url))
+    report_contents = next(batch_fetch_url(wo_report_pdf_urls,2))
 
-#print(fetch_tuple_list)
+    with open(f'OT_{report_contents[0][0]}.pdf', "wb") as file:
+        file.write(report_contents[0][1]) # type: ignore
 
-report_contents = next(batch_fetch_url(wo_report_pdf_urls,2))
-
-with open(f'OT_{report_contents[0][0]}.pdf', "wb") as file:
-    file.write(report_contents[0][1])
-
-
-exit()
-
-#print('total_result : wo_core frame')
-#print(total_wo_nz_result.wo_core)
-
+if len(nz_results) > 0:
 # write the result to db
-with sqlite3.connect(f'fetch_result.sqlite3') as conn:
-    wo_core.to_sql('wo_core',conn,if_exists='replace',index=False) # type: ignore
-    wo_report.to_sql('wo_report',conn,if_exists='replace',index=False) # type: ignore
-    wo_report_imgs.to_sql('wo_report_imgs',conn,if_exists='replace',index=False) # type: ignore
+    with sqlite3.connect(f'fetch_result.sqlite3') as conn:
+        wo_core.to_sql('wo_core',conn,if_exists='replace',index=False) # type: ignore
+        wo_report.to_sql('wo_report',conn,if_exists='replace',index=False) # type: ignore
+        wo_report_imgs.to_sql('wo_report_imgs',conn,if_exists='replace',index=False) # type: ignore
 
 # pprint(total_wo_nz_result)

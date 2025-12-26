@@ -11,6 +11,8 @@ from datetime import date, time, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
+# local imports
+from praxedo_ws.soap import PraxedoSoapClient
 
 def get_url_content(arg_url):
     with warnings.catch_warnings():
@@ -76,9 +78,9 @@ class NORMALIZED_DF_RESULT(NamedTuple):
     wo_report       : pd.DataFrame
     wo_report_imgs  : pd.DataFrame
 
-def normalize_ws_response(arg_wo_entities_list:list[object]):
+def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE):
     '''
-    The function basically normalize a raw SOAP web service response to separate work order and work order report information
+    The function basically normalize a raw SOAP web service response to get a convinient shema manly separating work order and work order report information
     The returned result is a "normalized model" with 3x frames
     It does not load any extra information as its purpose is only to get convinient structure for further processing.
 
@@ -110,13 +112,25 @@ def normalize_ws_response(arg_wo_entities_list:list[object]):
     REF_WO_CORE_ID_COL           = 'id'
     REF_WO_CORE_EXTENSION_COL    = 'extensions'
     REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
+    REF_WO_CORE_LIFECYLCE_DATES  = 'completionData.lifecycleTransitionDates'
+
+    # lifecycle dates
+    LIFCY_DATE_COMM_COL         = 'communicationDate'
+    LIFCY_DATE_APP_COL          = 'appointmentDate'
+    LIFCY_DATE_SCHED_COL        = 'schedulingDate'
+    LIFCY_DATE_PDA_LOAD_COL     = 'pdaLoadingDate'
+    LIFCY_DATE_PDA_UNLOAD_COL   = 'pdaUnloadingDate'
+    LIFCY_DATE_START_COL        = 'startDate'
+    LIFCY_DATE_COMPLE_COL       = 'completionDate'
+    LIFCY_DATE_VALID_COL        = 'validationDate'
+    LIFCY_DATE_LAST_MODI_COL    = 'lastModificationDate' 
 
     ''' wo_report
     '''
-    WO_REPORT_ID_COL         = 'wo_id'
-    WO_REPORT_UUID_COL       = 'wo_uuid'
-    WO_REPORT_FIELDS_COL     = 'wo_report_fields'
-    WO_REPORT_PDF_BIN_COL    = 'wo_report_pdf_bin'
+    WO_REPORT_ID_COL        = 'wo_id'
+    WO_REPORT_URL_COL       = 'wo_report_url'
+    WO_REPORT_FIELDS_COL    = 'wo_report_fields'
+    WO_REPORT_PDF_BIN_COL   = 'wo_report_pdf_bin'
 
     ''' wo_report_imgs
     '''
@@ -132,6 +146,10 @@ def normalize_ws_response(arg_wo_entities_list:list[object]):
     # building a data frame out of the result. 
     # level = 2 is enough to get enough useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
+
+
+    # expeand the content of the "lifecycleTransitionDates" column into the lifecycle dates columns
+
 
     #print('*** wo_core ****')
     #print(df_wo_core[REF_WO_CORE_FIELDS_COL])
@@ -151,19 +169,20 @@ def normalize_ws_response(arg_wo_entities_list:list[object]):
     # [1] - Building the wo_report frame
     # creating the table by copying the work order "id"
 
-    df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_UUID_COL,WO_REPORT_FIELDS_COL,WO_REPORT_PDF_BIN_COL])
+    df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_URL_COL,WO_REPORT_FIELDS_COL,WO_REPORT_PDF_BIN_COL])
     df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[REF_WO_CORE_ID_COL]]
 
     # extract the uuid from the "extensions" wo property
-    def extract_uuid(json_val):
+    def extract_report_url(json_val):
         query = Query(orjson.loads(json_val))
         uuid_prop = query.where("key == businessEvent.extension.uuid").tolist()
         if uuid_prop :
-            return_val = uuid_prop[0]['value'] 
-            return return_val
+            uuid = uuid_prop[0]['value']
+            report_url = f'{arg_base_url}/rest/api/v1/workOrder/uuid:{uuid}/render' 
+            return report_url
         return 'null'
 
-    df_wo_report[WO_REPORT_UUID_COL] = df_wo_core[REF_WO_CORE_EXTENSION_COL].apply(extract_uuid)
+    df_wo_report[WO_REPORT_URL_COL] = df_wo_core[REF_WO_CORE_EXTENSION_COL].apply(extract_report_url)
 
     df_wo_report[WO_REPORT_FIELDS_COL] = df_wo_core[REF_WO_CORE_FIELDS_COL].copy()
 
@@ -180,12 +199,13 @@ def normalize_ws_response(arg_wo_entities_list:list[object]):
     # [2] Building the wo_report_img data frame
     df_wo_report_imgs = pd.DataFrame(columns=[WO_REPORT_IMGS_ID,WO_REPORT_IMGS_FIELD_ID,WO_REPORT_IMGS_URL_COL,WO_REPORT_IMGS_BIN_COL])
 
-    for index, row in df_wo_report.iterrows():
-        img_field_list = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",row[WO_REPORT_FIELDS_COL])
-        for img_field in img_field_list :
+    #for index, row in df_wo_report.iterrows():
+    for report_field_row in df_wo_report[WO_REPORT_FIELDS_COL]
+        img_fields = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",report_field_row[WO_REPORT_FIELDS_COL])
+        for img_field in img_fields :
             field_id = img_field['id'] # type: ignore
             img_url  = img_field['value'] # type: ignore
-            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [row[WO_REPORT_ID_COL],field_id,img_url,None]
+            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [report_field_row[WO_REPORT_ID_COL],field_id,img_url,None]
     
     #print('*** wo_report_imgs ****')
     #print(df_wo_report_imgs)
