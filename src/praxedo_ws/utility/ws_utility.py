@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import NamedTuple
 import warnings
 from zeep import helpers as zeepHelper
@@ -112,18 +113,22 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     REF_WO_CORE_ID_COL           = 'id'
     REF_WO_CORE_EXTENSION_COL    = 'extensions'
     REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
-    REF_WO_CORE_LIFECYLCE_DATES  = 'completionData.lifecycleTransitionDates'
+    REF_WO_CORE_LIFCY_DATES_COL  = 'completionData.lifecycleTransitionDates'
+
+    WO_CORE_UUID_COL             = 'uuid'
+    WO_CORE_UUID_PROP            = 'businessEvent.extension.uuid'
 
     # lifecycle dates
-    LIFCY_DATE_COMM_COL         = 'communicationDate'
-    LIFCY_DATE_APP_COL          = 'appointmentDate'
-    LIFCY_DATE_SCHED_COL        = 'schedulingDate'
-    LIFCY_DATE_PDA_LOAD_COL     = 'pdaLoadingDate'
-    LIFCY_DATE_PDA_UNLOAD_COL   = 'pdaUnloadingDate'
-    LIFCY_DATE_START_COL        = 'startDate'
-    LIFCY_DATE_COMPLE_COL       = 'completionDate'
-    LIFCY_DATE_VALID_COL        = 'validationDate'
-    LIFCY_DATE_LAST_MODI_COL    = 'lastModificationDate' 
+    class WO_CORE_LIFY_DATES_COL(Enum):
+        LIFCY_DATE_COMM         = 'communicationDate'
+        LIFCY_DATE_APP          = 'appointmentDate'
+        LIFCY_DATE_SCHED        = 'schedulingDate'
+        LIFCY_DATE_PDA_LOAD     = 'pdaLoadingDate'
+        LIFCY_DATE_PDA_UNLOAD   = 'pdaUnloadingDate'
+        LIFCY_DATE_START        = 'startDate'
+        LIFCY_DATE_COMPLE       = 'completionDate'
+        LIFCY_DATE_VALID        = 'validationDate'
+        LIFCY_DATE_LAST_MODI    = 'lastModificationDate' 
 
     ''' wo_report
     '''
@@ -147,8 +152,20 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # level = 2 is enough to get enough useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
+    # create the uuid column
+    df_extensions = df_wo_core[REF_WO_CORE_EXTENSION_COL].map(lambda xtsion_tab : { xtsion_prop['key'] : xtsion_prop['value'] for xtsion_prop in xtsion_tab} )
+    df_wo_core[WO_CORE_UUID_COL] = df_extensions.map(lambda xtsion_dict : xtsion_dict[WO_CORE_UUID_PROP] if WO_CORE_UUID_PROP in xtsion_dict else None)
 
-    # expeand the content of the "lifecycleTransitionDates" column into the lifecycle dates columns
+    # expand the content of the "lifecycleTransitionDates" column into the lifecycle dates columns  
+    # first tranform the 'lifecycleTransitionDates" collection into a single dictionary 
+    df_lifcy = df_wo_core[REF_WO_CORE_LIFCY_DATES_COL].map(lambda lifcy_tab : { lifcy_elt['name'] : lifcy_elt['date'] for lifcy_elt in lifcy_tab})
+
+    # second, copy all date to every associated columns 
+    for lify_columns in WO_CORE_LIFY_DATES_COL :
+        df_wo_core[lify_columns.value] = df_lifcy.map(lambda lifcy_dict : lifcy_dict[lify_columns.value] if lify_columns.value in lifcy_dict else None )
+
+    # third, drop the lifcycleTransitionDates column
+    df_wo_core.drop(columns=[REF_WO_CORE_LIFCY_DATES_COL],inplace=True)
 
 
     #print('*** wo_core ****')
@@ -172,22 +189,13 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_URL_COL,WO_REPORT_FIELDS_COL,WO_REPORT_PDF_BIN_COL])
     df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[REF_WO_CORE_ID_COL]]
 
-    # extract the uuid from the "extensions" wo property
-    def extract_report_url(json_val):
-        query = Query(orjson.loads(json_val))
-        uuid_prop = query.where("key == businessEvent.extension.uuid").tolist()
-        if uuid_prop :
-            uuid = uuid_prop[0]['value']
-            report_url = f'{arg_base_url}/rest/api/v1/workOrder/uuid:{uuid}/render' 
-            return report_url
-        return 'null'
-
-    df_wo_report[WO_REPORT_URL_COL] = df_wo_core[REF_WO_CORE_EXTENSION_COL].apply(extract_report_url)
+    # build the report url out of the uuid and base url
+    df_wo_report[WO_REPORT_URL_COL] = df_wo_core[WO_CORE_UUID_COL].map(lambda uuid : f'{arg_base_url}/rest/api/v1/workOrder/uuid:{uuid}/render' )
 
     df_wo_report[WO_REPORT_FIELDS_COL] = df_wo_core[REF_WO_CORE_FIELDS_COL].copy()
 
     # dropping the report fields column from the original frame
-    df_wo_core.drop(columns=[REF_WO_CORE_FIELDS_COL])
+    df_wo_core.drop(columns=[REF_WO_CORE_FIELDS_COL],inplace=True)
 
     # define an empty pdf report column
     df_wo_report[WO_REPORT_PDF_BIN_COL] = None
@@ -200,8 +208,8 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     df_wo_report_imgs = pd.DataFrame(columns=[WO_REPORT_IMGS_ID,WO_REPORT_IMGS_FIELD_ID,WO_REPORT_IMGS_URL_COL,WO_REPORT_IMGS_BIN_COL])
 
     #for index, row in df_wo_report.iterrows():
-    for report_field_row in df_wo_report[WO_REPORT_FIELDS_COL]
-        img_fields = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",report_field_row[WO_REPORT_FIELDS_COL])
+    for report_field_row in df_wo_report[WO_REPORT_FIELDS_COL] :
+        img_fields = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",report_field_row)
         for img_field in img_fields :
             field_id = img_field['id'] # type: ignore
             img_url  = img_field['value'] # type: ignore
