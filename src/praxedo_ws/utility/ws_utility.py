@@ -53,11 +53,11 @@ def batch_fetch_url(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
         with ThreadPoolExecutor(max_workers=arg_batch_size) as executor:
             url_contents = list(executor.map(get_url_content, url_list))
 
-        result = [(fetch_batch[idx][0], url_content) for idx, url_content in enumerate(url_contents)] # type: ignore
+        result = [(url_content, fetch_batch[idx][0]) for idx, url_content in enumerate(url_contents)] # type: ignore
         yield result
 
 
-def get_week_days(week: int, year: int):
+def get_week_days_sequence(week: int, year: int):
     """
     Return a sequence of tuple covering a given week
     Each element of the sequence is a day period representing by a tuple (start_date, stop_date)
