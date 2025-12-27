@@ -34,7 +34,8 @@ def get_url_content(arg_url):
                         print('Max retry errors : return None...')
                         return None
                     else : 
-                        print('get_url_content():Err 429 - too many requests- wait and retry...')
+                        print('get_url_content():Err 429 - too many requests- wait 5[s] and retry...')
+                        print(f'url:{arg_url}')
                         sysTime.sleep(5)
         
     return result.content
@@ -46,7 +47,7 @@ def batch_fetch_url(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
 
     for idx, fetch_batch in enumerate(fetch_batchs):
             
-        print(f'\rprocessing batch : {idx+1}/{len(fetch_batchs)} ',end='',flush=True)
+        #print(f'\rprocessing batch : {idx+1}/{len(fetch_batchs)} ',end='',flush=True)
         
         url_list = [url_tuple[1] for url_tuple in fetch_batch] # extracting the url list from tuple
         # downloading a chunck of url concurently
@@ -213,13 +214,13 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # [2] Building the wo_report_img data frame
     df_wo_report_imgs = pd.DataFrame(columns=[WO_REPORT_IMGS_ID,WO_REPORT_IMGS_FIELD_ID,WO_REPORT_IMGS_URL_COL,WO_REPORT_IMGS_BIN_COL])
 
-    #for index, row in df_wo_report.iterrows():
-    for report_field_row in df_wo_report[WO_REPORT_FIELDS_COL] :
-        img_fields = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",report_field_row)
+    #for report_field_row in df_wo_report[WO_REPORT_FIELDS_COL] :
+    for index, wo_report_row in df_wo_report.iterrows():
+        img_fields = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",wo_report_row[WO_REPORT_FIELDS_COL])
         for img_field in img_fields :
             field_id = img_field['id'] # type: ignore
             img_url  = img_field['value'] # type: ignore
-            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [report_field_row[WO_REPORT_ID_COL],field_id,img_url,None]
+            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT_ID_COL],field_id,img_url,None]
     
     #print('*** wo_report_imgs ****')
     #print(df_wo_report_imgs)

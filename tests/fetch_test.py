@@ -37,7 +37,7 @@ total_duration.start()
 day_duration.start()
 print('fetch whole week begin')
 print('day 1...')
-for idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
+for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
     result_size = len(one_day_wo_list)
     if result_size > 0:
         total_wo_nbr += result_size
@@ -45,11 +45,13 @@ for idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
         nz_result = normalize_ws_response(one_day_wo_list)
         # accumulate the results into a list
         nz_results.append(nz_result)
+        # DEBUG
+        #if day_idx == 1 : break
     
     day_duration.stop()
-    print(f'day {idx+1}:total duration:{day_duration.get_duration_str()} number of work orders: {result_size}')
+    print(f'day {day_idx+1}:total duration:{day_duration.get_duration_str()} number of work orders: {result_size}')
     #if idx == 1 : break # DEBUG
-    print(f'day {idx+2}...')
+    print(f'day {day_idx+2}...')
     day_duration.start()
 
 # merging results
@@ -63,37 +65,40 @@ if len(nz_results) > 0:
 # writing the normalized form to the db
 if len(nz_results) > 0:
 # write the result to db
-    with sqlite3.connect(f'fetch_result.sqlite3') as conn:
+    with sqlite3.connect(f'fetch_result.sqlite3') as sqlite_db:
 
         # making the "id" column a primary key
         wo_core_dtype = {'id': 'INTEGER PRIMARY KEY'}
-        wo_core.to_sql('wo_core', conn, dtype=wo_core_dtype, if_exists='replace',index=False) # type: ignore
+        wo_core.to_sql('wo_core', sqlite_db, dtype=wo_core_dtype, if_exists='replace',index=False) # type: ignore
         
         wo_report_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_core(id)'}
-        wo_report.to_sql('wo_report', conn, dtype=wo_report_dtype, if_exists='replace',index=False) # type: ignore
+        wo_report.to_sql('wo_report', sqlite_db, dtype=wo_report_dtype, if_exists='replace',index=False) # type: ignore
 
-        wo_report_imgs_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_report(wo_id)'}
-        wo_report_imgs.to_sql('wo_report_imgs', conn, dtype=wo_report_imgs_dtype, if_exists='replace',index=False) # type: ignore
+        wo_report_imgs_dtype = {'wo_id':'INTEGER REFERENCES wo_report(wo_id)'}
+        wo_report_imgs.to_sql('wo_report_imgs', sqlite_db, dtype=wo_report_imgs_dtype, if_exists='replace',index=False) # type: ignore
 
 
         # clearing memory
         wo_core = wo_report = wo_report_imgs = None
 
         # download pdf report and update the wo_report table
-        BATCH_SIZE = 20
+        BATCH_SIZE = 5
         select_sql = 'SELECT wo_id, wo_report_url FROM wo_report WHERE wo_report_pdf_bin IS NULL'
         count_sql =  f'SELECT COUNT(*) FROM ({select_sql})'
         update_sql = 'UPDATE wo_report SET wo_report_pdf_bin = ? WHERE wo_id = ?'
 
-        total_fetch_nbr, = conn.execute(count_sql).fetchone()
-        print(f'total number of reports to fetch :{total_fetch_nbr}')
+        total_fetch_nbr, = sqlite_db.execute(count_sql).fetchone()
+        print(f'downloading :{total_fetch_nbr} files...')
 
-        select_cur = conn.execute(select_sql)
-        for batch_nbr in range((total_fetch_nbr + BATCH_SIZE -1) // BATCH_SIZE) : 
+        total_batch_nbr = (total_fetch_nbr + BATCH_SIZE -1) // BATCH_SIZE
+        select_cur = sqlite_db.execute(select_sql)
+        for batch_idx in range(total_batch_nbr) : 
             # downloading the report pdf files
             batch = select_cur.fetchmany(BATCH_SIZE)
             contents = next(batch_fetch_url(batch,BATCH_SIZE))
-            updat_cur = conn.executemany(update_sql,contents)
+            print(f'\rdownloaded : {round(((batch_idx+1) /total_batch_nbr)*100)} %',end='',flush=True)
+            update_cur = sqlite_db.executemany(update_sql,contents)
+            sqlite_db.commit()
     
     total_duration.stop()
     print(f'total: wo nbr:{total_wo_nbr} fetch duration:{total_duration.get_duration_str()}')
