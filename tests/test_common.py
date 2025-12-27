@@ -15,11 +15,16 @@ class SimplePerfClock:
     def stop(self):
         self.stop_time = time.perf_counter()
     
-    def get_duration_str(self):
-        exec_time = self.stop_time - self.start_time # unit [s]
-        # exec_time_str = f'{exec_time:.2f}[s]'
-        exec_time_60 = int(exec_time)//60
+    def elapsed_time_str(self):
+        time_from_start = time.perf_counter() - self.start_time # unit [s]
+        minutes = int(time_from_start)//60
         
-        exec_time_str = f'{ str(exec_time_60) + "[min]" if exec_time_60 > 0 else ""}{round(exec_time - exec_time_60*60)}[s]'
+        exec_time_str = f'{ str(minutes) + "[min]" if minutes > 0 else ""}{round(time_from_start - minutes*60)}[s]'
+        return exec_time_str
+
+    def total_time_str(self):
+        duration = self.stop_time - self.start_time # unit [s]
+        minutes = int(duration)//60
         
+        exec_time_str = f'{ str(minutes) + "[min]" if minutes > 0 else ""}{round(duration - minutes*60)}[s]'
         return exec_time_str

@@ -49,7 +49,7 @@ for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
         #if day_idx == 1 : break
     
     day_duration.stop()
-    print(f'day {day_idx+1}:total duration:{day_duration.get_duration_str()} number of work orders: {result_size}')
+    print(f'day {day_idx+1}:total duration:{day_duration.total_time_str()} number of work orders: {result_size}')
     #if idx == 1 : break # DEBUG
     print(f'day {day_idx+2}...')
     day_duration.start()
@@ -81,26 +81,35 @@ if len(nz_results) > 0:
         # clearing memory
         wo_core = wo_report = wo_report_imgs = None
 
-        # download pdf report and update the wo_report table
-        BATCH_SIZE = 5
-        select_sql = 'SELECT wo_id, wo_report_url FROM wo_report WHERE wo_report_pdf_bin IS NULL'
-        count_sql =  f'SELECT COUNT(*) FROM ({select_sql})'
-        update_sql = 'UPDATE wo_report SET wo_report_pdf_bin = ? WHERE wo_id = ?'
+        #DEBUG emptying the whole wo_report_bin column
+        #sql_clear_pdf_bin = 'UPDATE wo_report SET wo_report_pdf_bin = NULL'
+        #sqlite_db.execute(sql_clear_pdf_bin)
+        #sqlite_db.commit()
 
-        total_fetch_nbr, = sqlite_db.execute(count_sql).fetchone()
+        pdf_fetch_duration = SimplePerfClock()
+        pdf_fetch_duration.start()
+        # download pdf report and update the wo_report table
+        BATCH_SIZE = 25
+        sql_pdf_rows = 'SELECT wo_id, wo_report_url FROM wo_report WHERE wo_report_pdf_bin IS NULL'
+        sql_pdf_rows_count =  f'SELECT COUNT(*) FROM ({sql_pdf_rows})'
+        sql_update_rows = 'UPDATE wo_report SET wo_report_pdf_bin = ? WHERE wo_id = ?'
+
+        total_fetch_nbr, = sqlite_db.execute(sql_pdf_rows_count).fetchone()
         print(f'downloading :{total_fetch_nbr} files...')
 
         total_batch_nbr = (total_fetch_nbr + BATCH_SIZE -1) // BATCH_SIZE
-        select_cur = sqlite_db.execute(select_sql)
+        select_cur = sqlite_db.execute(sql_pdf_rows)
         for batch_idx in range(total_batch_nbr) : 
             # downloading the report pdf files
             batch = select_cur.fetchmany(BATCH_SIZE)
-            contents = next(batch_fetch_url(batch,BATCH_SIZE))
-            print(f'\rdownloaded : {round(((batch_idx+1) /total_batch_nbr)*100)} %',end='',flush=True)
-            update_cur = sqlite_db.executemany(update_sql,contents)
+            contents = new_fetch_url_batch(batch,BATCH_SIZE,0.5)
+            print(f'\rdownloaded : { (batch_idx+1) *BATCH_SIZE}/{total_batch_nbr * BATCH_SIZE} {math.floor(((batch_idx+1) /total_batch_nbr)*100)}% elapsed time:{pdf_fetch_duration.elapsed_time_str()}',end='',flush=True)
+            update_cur = sqlite_db.executemany(sql_update_rows,contents)
             sqlite_db.commit()
     
-    total_duration.stop()
-    print(f'total: wo nbr:{total_wo_nbr} fetch duration:{total_duration.get_duration_str()}')
+    pdf_fetch_duration.stop()
+    print(f'total: wo nbr:{total_wo_nbr} pdf fetch duration:{pdf_fetch_duration.total_time_str()}')
 
-# pprint(total_wo_nz_result)
+total_duration.stop()
+print(f'total process duration:{total_duration.total_time_str()}')
+

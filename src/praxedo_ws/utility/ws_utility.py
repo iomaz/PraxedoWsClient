@@ -10,7 +10,7 @@ import jsonpath
 import time as sysTime
 from datetime import date, time, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+import math
 
 # local imports
 from praxedo_ws.soap import PraxedoSoapClient
@@ -40,7 +40,7 @@ def get_url_content(arg_url):
         
     return result.content
 
-def batch_fetch_url(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
+def fetch_url_batch(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
     #BATCH_SIZE = 20
     # splitting the list into fetch batches
     fetch_batchs = [arg_url_list[i:i + arg_batch_size] for i in range(0, len(arg_url_list), arg_batch_size)]
@@ -56,6 +56,32 @@ def batch_fetch_url(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
 
         result = [(url_content, fetch_batch[idx][0]) for idx, url_content in enumerate(url_contents)] # type: ignore
         yield result
+
+def new_fetch_url_batch(arg_url_list : list[tuple[str,str]], arg_batch_size: int = 20,  arg_delay : float = 0.0):
+
+    results = []
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        with ThreadPoolExecutor(max_workers=arg_batch_size) as executor:
+            # launching all tasks
+            task_to_url = {}
+            task_nbr = len(arg_url_list)
+            for idx, url_tuple in enumerate(arg_url_list) :
+                sysTime.sleep(arg_delay)
+                #print(f'\rlaunching tasks:{math.floor(((idx+1)/task_nbr)*100)}%',end='',flush=True)
+                task = executor.submit(get_url_content, url_tuple[1])
+                task_to_url.update({task:url_tuple})
+
+            #print('')
+            # wait for all tasks to finish
+            # print('launching complete : wait for all task to finish....')
+            for idx, task in enumerate(task_to_url.keys()):
+                task_result = task.result() # wait for this task to finish
+                completed_wo_no = task_to_url[task][0]
+                results.append((task_result, completed_wo_no ))
+                #print(f'\rlaunching tasks:{math.floor(((idx+1)/task_nbr)*100)}%',end='',flush=True)
+            
+    return results
 
 
 def get_week_days_sequence(week: int, year: int):
