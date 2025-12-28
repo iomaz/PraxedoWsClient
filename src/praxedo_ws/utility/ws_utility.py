@@ -57,27 +57,24 @@ def fetch_url_batch(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
         result = [(url_content, fetch_batch[idx][0]) for idx, url_content in enumerate(url_contents)] # type: ignore
         yield result
 
-def new_fetch_url_batch(arg_url_list : list[tuple[str,str]], arg_batch_size: int = 20,  arg_delay : float = 0.0):
+def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_delay : float = 0.0):
 
     results = []
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         with ThreadPoolExecutor(max_workers=arg_batch_size) as executor:
-            # launching all tasks
-            task_to_url = {}
-            task_nbr = len(arg_url_list)
-            for idx, url_tuple in enumerate(arg_url_list) :
+            # launching all tasks waiting "delay" between each start
+            task_to_wo = {}
+            task_nbr = len(arg_url_dict)
+            for idx, wo_no in enumerate(arg_url_dict) :
                 sysTime.sleep(arg_delay)
-                #print(f'\rlaunching tasks:{math.floor(((idx+1)/task_nbr)*100)}%',end='',flush=True)
-                task = executor.submit(get_url_content, url_tuple[1])
-                task_to_url.update({task:url_tuple})
+                task = executor.submit(get_url_content, arg_url_dict[wo_no])
+                task_to_wo.update({task:wo_no})
 
-            #print('')
             # wait for all tasks to finish
-            # print('launching complete : wait for all task to finish....')
-            for idx, task in enumerate(task_to_url.keys()):
+            for idx, task in enumerate(task_to_wo):
                 task_result = task.result() # wait for this task to finish
-                completed_wo_no = task_to_url[task][0]
+                completed_wo_no = task_to_wo[task]
                 results.append((task_result, completed_wo_no ))
                 #print(f'\rlaunching tasks:{math.floor(((idx+1)/task_nbr)*100)}%',end='',flush=True)
             

@@ -102,7 +102,8 @@ if len(nz_results) > 0:
         for batch_idx in range(total_batch_nbr) : 
             # downloading the report pdf files
             batch = select_cur.fetchmany(BATCH_SIZE)
-            contents = new_fetch_url_batch(batch,BATCH_SIZE,0.5)
+            url_dict = { wo_id : url for wo_id, url in batch }
+            contents = delay_fetch_url_batch(url_dict,BATCH_SIZE,0.5)
             print(f'\rdownloaded : { (batch_idx+1) *BATCH_SIZE}/{total_batch_nbr * BATCH_SIZE} {math.floor(((batch_idx+1) /total_batch_nbr)*100)}% elapsed time:{pdf_fetch_duration.elapsed_time_str()}',end='',flush=True)
             update_cur = sqlite_db.executemany(sql_update_rows,contents)
             sqlite_db.commit()
