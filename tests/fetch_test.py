@@ -45,8 +45,8 @@ for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
         nz_result = normalize_ws_response(one_day_wo_list)
         # accumulate the results into a list
         nz_results.append(nz_result)
-        # DEBUG
-        #if day_idx == 1 : break
+        #DEBUG
+        if day_idx == 0 : break
     
     day_duration.stop()
     print(f'day {day_idx+1}:total duration:{day_duration.total_time_str()} number of work orders: {result_size}')
@@ -62,6 +62,23 @@ if len(nz_results) > 0:
 
     print(f'total work order results nbr:{total_wo_nbr}')
 
+    # extracting two extra columns from two fields value
+    def json_extract_int_val_from_key(arg_key_str:str, arg_json_content:str):
+        json_match = jsonpath.findall(f'$[? (@.id == "{arg_key_str}")]',arg_json_content)
+        if json_match: return int(json_match[0]['value']) # type: ignore
+        else : return None
+
+    WO_REPORT_FIELDS_COL    = 'wo_report_fields'
+    REPORT_SAP_OR_FIELD     = 'F_SUB_CT_Or'
+    REPORT_SAP_LC_FIELD     = 'F_SUB_CT_LC'
+    WO_REPORT_OR_COL        = 'wo_sap_or'
+    WO_REPORT_LC_COL        = 'wo_sap_lc'
+
+    wo_report[WO_REPORT_OR_COL] = wo_report[WO_REPORT_FIELDS_COL].map(lambda json_content : json_extract_int_val_from_key(REPORT_SAP_OR_FIELD,json_content))
+    wo_report[WO_REPORT_LC_COL] = wo_report[WO_REPORT_FIELDS_COL].map(lambda json_content : json_extract_int_val_from_key(REPORT_SAP_LC_FIELD,json_content))
+
+
+
 # writing the normalized form to the db
 if len(nz_results) > 0:
 # write the result to db
@@ -76,6 +93,11 @@ if len(nz_results) > 0:
 
         wo_report_imgs_dtype = {'wo_id':'INTEGER REFERENCES wo_report(wo_id)'}
         wo_report_imgs.to_sql('wo_report_imgs', sqlite_db, dtype=wo_report_imgs_dtype, if_exists='replace',index=False) # type: ignore
+
+
+        # DEBUG
+        sqlite_db.commit()
+        exit()
 
 
         # clearing memory

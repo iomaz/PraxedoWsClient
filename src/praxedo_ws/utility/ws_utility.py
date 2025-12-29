@@ -80,7 +80,6 @@ def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_de
             
     return results
 
-
 def get_week_days_sequence(week: int, year: int):
     """
     Return a sequence of tuple covering a given week

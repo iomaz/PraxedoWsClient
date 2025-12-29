@@ -3,7 +3,6 @@ import time
 
 class SimplePerfClock:
     '''
-    Role
     compute the time between start() and stop()
     '''    
     start_time  : float
@@ -19,12 +18,12 @@ class SimplePerfClock:
         time_from_start = time.perf_counter() - self.start_time # unit [s]
         minutes = int(time_from_start)//60
         
-        exec_time_str = f'{ str(minutes) + "[min]" if minutes > 0 else ""}{round(time_from_start - minutes*60)}[s]'
+        exec_time_str = f'{ str(minutes) + "[min]" if minutes > 0 else ""}{int(time_from_start - minutes*60)}[s]'
         return exec_time_str
 
     def total_time_str(self):
         duration = self.stop_time - self.start_time # unit [s]
         minutes = int(duration)//60
         
-        exec_time_str = f'{ str(minutes) + "[min]" if minutes > 0 else ""}{round(duration - minutes*60)}[s]'
+        exec_time_str = f'{ str(minutes) + "[min]" if minutes > 0 else ""}{int(duration - minutes*60)}[s]'
         return exec_time_str
