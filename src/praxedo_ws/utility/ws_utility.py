@@ -59,7 +59,7 @@ def fetch_url_batch(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
 
 def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_delay : float = 0.0):
 
-    results = []
+    results = {}
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         with ThreadPoolExecutor(max_workers=arg_batch_size) as executor:
@@ -75,9 +75,8 @@ def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_de
             for idx, task in enumerate(task_to_wo):
                 task_result = task.result() # wait for this task to finish
                 completed_wo_no = task_to_wo[task]
-                results.append((task_result, completed_wo_no ))
-                #print(f'\rlaunching tasks:{math.floor(((idx+1)/task_nbr)*100)}%',end='',flush=True)
-            
+                results.update({completed_wo_no : task_result})
+    
     return results
 
 def get_week_days_sequence(week: int, year: int):
@@ -137,9 +136,11 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     REF_WO_CORE_EXTENSION_COL    = 'extensions'
     REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
     REF_WO_CORE_LIFCY_DATES_COL  = 'completionData.lifecycleTransitionDates'
+    REF_WO_CORE_REF_LOCATION_COL  = 'coreData.referentialData.location'
 
     WO_CORE_UUID_COL             = 'uuid'
     WO_CORE_UUID_PROP            = 'businessEvent.extension.uuid'
+    WO_CORE_LOCATION_NAME_COL    = 'coreData.referentialData.location.name'
 
     # lifecycle dates
     class WO_CORE_LIFCY_DATES_COL(Enum):
@@ -158,7 +159,6 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     WO_REPORT_ID_COL        = 'wo_id'
     WO_REPORT_URL_COL       = 'wo_report_url'
     WO_REPORT_FIELDS_COL    = 'wo_report_fields'
-    WO_REPORT_PDF_BIN_COL   = 'wo_report_pdf_bin'
 
     ''' wo_report_imgs
     '''
@@ -179,21 +179,26 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     columns = [REF_WO_CORE_ID_COL] + [col for col in df_wo_core.columns if col != REF_WO_CORE_ID_COL]
     df_wo_core = df_wo_core.reindex(columns=columns)
 
-    # create the uuid column
+    # creating the location.name column by extracting the value from the "coreData:referentialData.location.name" column
+    df_location_name = df_wo_core[REF_WO_CORE_REF_LOCATION_COL].map(lambda loc_val : loc_val['name'] if loc_val else None )
+    src_location = df_wo_core.columns.get_loc(REF_WO_CORE_REF_LOCATION_COL)
+    df_wo_core.insert(src_location + 1,WO_CORE_LOCATION_NAME_COL,df_location_name) # type: ignore
+
+    # create the uuid column by extracting the value from the "extensions" column
     df_extensions = df_wo_core[REF_WO_CORE_EXTENSION_COL].map(lambda xtsion_tab : { xtsion_prop['key'] : xtsion_prop['value'] for xtsion_prop in xtsion_tab} )
     df_uuid = df_extensions.map(lambda xtsion_dict : xtsion_dict[WO_CORE_UUID_PROP] if WO_CORE_UUID_PROP in xtsion_dict else None)
     # insert the uuid column just after the extensions column
     df_wo_core.insert(df_wo_core.columns.get_loc(REF_WO_CORE_EXTENSION_COL) + 1, WO_CORE_UUID_COL, df_uuid) # type: ignore
 
     # expand the content of the "lifecycleTransitionDates" column into the lifecycle dates columns  
-    # first tranform the 'lifecycleTransitionDates" collection into a single dictionary 
+    # [1] tranform the 'lifecycleTransitionDates" collection into a single dictionary 
     df_lifcy = df_wo_core[REF_WO_CORE_LIFCY_DATES_COL].map(lambda lifcy_tab : { lifcy_elt['name'] : lifcy_elt['date'] for lifcy_elt in lifcy_tab})
 
-    # second, copy all date to every associated columns 
+    # [2] copy all date to every associated columns 
     for lify_columns in WO_CORE_LIFCY_DATES_COL :
         df_wo_core[lify_columns.value] = df_lifcy.map(lambda lifcy_dict : lifcy_dict[lify_columns.value] if lify_columns.value in lifcy_dict else None )
 
-    # third, drop the lifcycleTransitionDates column
+    # [3] drop the lifcycleTransitionDates column
     df_wo_core.drop(columns=[REF_WO_CORE_LIFCY_DATES_COL],inplace=True)
 
 
@@ -215,7 +220,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # [1] - Building the wo_report frame
     # creating the table by copying the work order "id"
 
-    df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_URL_COL,WO_REPORT_FIELDS_COL,WO_REPORT_PDF_BIN_COL])
+    df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_URL_COL,WO_REPORT_FIELDS_COL])
     df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[REF_WO_CORE_ID_COL]]
 
     # build the report url out of the uuid and base url
@@ -225,9 +230,6 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # dropping the report fields column from the original frame
     df_wo_core.drop(columns=[REF_WO_CORE_FIELDS_COL],inplace=True)
-
-    # define an empty pdf report column
-    df_wo_report[WO_REPORT_PDF_BIN_COL] = None
 
     #print('*** wo_report ****')
     #print(df_wo_report)
