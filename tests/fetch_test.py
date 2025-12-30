@@ -39,7 +39,7 @@ total_duration.start()
 day_duration.start()
 print('fetch whole week begin')
 print('day 1...')
-for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(40,2020)):
+for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(52,2024)):
     result_size = len(one_day_wo_list)
     if result_size > 0:
         total_wo_nbr += result_size
@@ -64,7 +64,7 @@ if len(nz_results) > 0:
 
     print(f'total work order results nbr:{total_wo_nbr}')
 
-    # extracting two extra columns from two fields value
+    # extracting json int value from given key
     def json_extract_int_val_from_key(arg_key_str:str, arg_json_content:str):
         json_match = jsonpath.findall(f'$[? (@.id == "{arg_key_str}")]',arg_json_content)
         if json_match: return int(json_match[0]['value']) # type: ignore
@@ -76,7 +76,7 @@ if len(nz_results) > 0:
     WO_REPORT_OR_COL        = 'wo_sap_or'
     WO_REPORT_LC_COL        = 'wo_sap_lc'
 
-    WO_CORE_LOCATION_NAME_COL    = 'coreData.referentialData.location.name'
+    WO_CORE_LOCATION_NAME_COL   = 'coreData.referentialData.location.name'
     wo_report[WO_REPORT_OR_COL] = wo_core[WO_CORE_LOCATION_NAME_COL].map(lambda name_val : int(name_val))
     wo_report[WO_REPORT_LC_COL] = wo_report[WO_REPORT_FIELDS_COL].map(lambda json_content : json_extract_int_val_from_key(REPORT_SAP_LC_FIELD,json_content))
 
@@ -92,14 +92,13 @@ if len(nz_results) > 0:
 # write the result to db
     with sqlite3.connect(f'fetch_result.sqlite3') as sqlite_db:
 
-        # making the "id" column a primary key
-        wo_core_dtype = {'id': 'INTEGER PRIMARY KEY'}
+        wo_core_dtype = {'id': 'INTEGER PRIMARY KEY'} # making the "id" column a primary key
         wo_core.to_sql('wo_core', sqlite_db, dtype=wo_core_dtype, if_exists='replace',index=False) # type: ignore
         
-        wo_report_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_core(id)'}
+        wo_report_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_core(id)'}  # making "wo_id" a foreign key
         wo_report.to_sql('wo_report', sqlite_db, dtype=wo_report_dtype, if_exists='replace',index=False) # type: ignore
 
-        wo_report_imgs_dtype = {'wo_id':'INTEGER REFERENCES wo_report(wo_id)'}
+        wo_report_imgs_dtype = {'wo_id':'INTEGER REFERENCES wo_report(wo_id)'} # making "wo_id" a foreign key
         wo_report_imgs.to_sql('wo_report_imgs', sqlite_db, dtype=wo_report_imgs_dtype, if_exists='replace',index=False) # type: ignore
 
         sqlite_db.commit()

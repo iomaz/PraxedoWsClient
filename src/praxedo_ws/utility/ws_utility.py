@@ -133,7 +133,9 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     The following identifyer are the few necessary colums id to allow the separaration of wo_report from the wo_core
     '''
     REF_WO_CORE_ID_COL           = 'id'
+    REF_WO_CORE_STATUS_COL       = 'status'
     REF_WO_CORE_EXTENSION_COL    = 'extensions'
+    REF_WO_CORE_CREA_DATE_COL    = 'coreData.creationDate'
     REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
     REF_WO_CORE_LIFCY_DATES_COL  = 'completionData.lifecycleTransitionDates'
     REF_WO_CORE_REF_LOCATION_COL  = 'coreData.referentialData.location'
@@ -165,19 +167,23 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     WO_REPORT_IMGS_ID           = 'wo_id'
     WO_REPORT_IMGS_FIELD_ID     = 'wo_report_field_id'
     WO_REPORT_IMGS_URL_COL      = 'wo_report_img_url'
-    WO_REPORT_IMGS_BIN_COL      = 'wo_report_img_bin'
+
+    def pop_reindex(df:pd.DataFrame, col_name: str, new_pos:int):
+        col_values = df.pop(col_name)
+        df.insert(new_pos,col_name,col_values)
 
 
     # convert zeep objects to native python structures
     pyObj_entities = zeepHelper.serialize_object(arg_wo_entities_list)
 
-    # building a data frame out of the result. 
-    # level = 2 is enough to get enough useful columns
+    # building a data frame by normalizing the list of wo object 
+    # level = 2 is enough to get a majority of useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
-    # move the "id" column to the first position
-    columns = [REF_WO_CORE_ID_COL] + [col for col in df_wo_core.columns if col != REF_WO_CORE_ID_COL]
-    df_wo_core = df_wo_core.reindex(columns=columns)
+    # reordering a few columns
+    pop_reindex(df_wo_core,REF_WO_CORE_ID_COL,0)
+    pop_reindex(df_wo_core,REF_WO_CORE_STATUS_COL,1)
+    pop_reindex(df_wo_core,REF_WO_CORE_CREA_DATE_COL,2)
 
     # creating the location.name column by extracting the value from the "coreData:referentialData.location.name" column
     df_location_name = df_wo_core[REF_WO_CORE_REF_LOCATION_COL].map(lambda loc_val : loc_val['name'] if loc_val else None )
@@ -195,8 +201,9 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     df_lifcy = df_wo_core[REF_WO_CORE_LIFCY_DATES_COL].map(lambda lifcy_tab : { lifcy_elt['name'] : lifcy_elt['date'] for lifcy_elt in lifcy_tab})
 
     # [2] copy all date to every associated columns 
-    for lify_columns in WO_CORE_LIFCY_DATES_COL :
-        df_wo_core[lify_columns.value] = df_lifcy.map(lambda lifcy_dict : lifcy_dict[lify_columns.value] if lify_columns.value in lifcy_dict else None )
+    for idx, lify_columns in enumerate(WO_CORE_LIFCY_DATES_COL) :
+        new_column = df_lifcy.map(lambda lifcy_dict : lifcy_dict[lify_columns.value] if lify_columns.value in lifcy_dict else None )
+        df_wo_core.insert(3 +idx,f'{REF_WO_CORE_LIFCY_DATES_COL}.{lify_columns.value}',new_column) 
 
     # [3] drop the lifcycleTransitionDates column
     df_wo_core.drop(columns=[REF_WO_CORE_LIFCY_DATES_COL],inplace=True)
@@ -205,7 +212,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     #print('*** wo_core ****')
     #print(df_wo_core[REF_WO_CORE_FIELDS_COL])
 
-    # this serialize non primitive value to json
+    # this serialize all "non primitive" values to json
     def convert_struct_to_json(value):
         if isinstance(value,(list,dict)):
             if len(value) > 0:
@@ -221,11 +228,12 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # creating the table by copying the work order "id"
 
     df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_URL_COL,WO_REPORT_FIELDS_COL])
-    df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[REF_WO_CORE_ID_COL]]
+    df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[REF_WO_CORE_ID_COL]].copy() # copy the 'id" column fron the wo_core to the wo_report
 
     # build the report url out of the uuid and base url
     df_wo_report[WO_REPORT_URL_COL] = df_wo_core[WO_CORE_UUID_COL].map(lambda uuid : f'{arg_base_url}/rest/api/v1/workOrder/uuid:{uuid}/render' )
 
+    # copy the 'fields" column from the wo_core frame
     df_wo_report[WO_REPORT_FIELDS_COL] = df_wo_core[REF_WO_CORE_FIELDS_COL].copy()
 
     # dropping the report fields column from the original frame
@@ -236,7 +244,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     
     # [2] Building the wo_report_img data frame
-    df_wo_report_imgs = pd.DataFrame(columns=[WO_REPORT_IMGS_ID,WO_REPORT_IMGS_FIELD_ID,WO_REPORT_IMGS_URL_COL,WO_REPORT_IMGS_BIN_COL])
+    df_wo_report_imgs = pd.DataFrame(columns=[WO_REPORT_IMGS_ID,WO_REPORT_IMGS_FIELD_ID,WO_REPORT_IMGS_URL_COL])
 
     #for report_field_row in df_wo_report[WO_REPORT_FIELDS_COL] :
     for index, wo_report_row in df_wo_report.iterrows():
@@ -244,7 +252,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
         for img_field in img_fields :
             field_id = img_field['id'] # type: ignore
             img_url  = img_field['value'] # type: ignore
-            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT_ID_COL],field_id,img_url,None]
+            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT_ID_COL],field_id,img_url]
     
     #print('*** wo_report_imgs ****')
     #print(df_wo_report_imgs)
