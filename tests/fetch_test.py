@@ -3,6 +3,7 @@ import sqlite3
 import os, sys
 import hashlib
 import base64
+
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 #-----------------------------------------------------------------------------
@@ -75,16 +76,22 @@ if len(nz_results) > 0:
     REPORT_SAP_LC_FIELD     = 'F_SUB_CT_LC'
     WO_REPORT_OR_COL        = 'wo_sap_or'
     WO_REPORT_LC_COL        = 'wo_sap_lc'
+    REF_WO_CORE_COMPLETION_DATE_COL = 'completionData.lifecycleTransitionDates.completionDate'
+    WO_COMPLETION_DATE_COL  = 'wo_completion_date'
 
+    # adding the "wo_sap_or" and "wo_sap_lc" columns
     WO_CORE_LOCATION_NAME_COL   = 'coreData.referentialData.location.name'
     wo_report[WO_REPORT_OR_COL] = wo_core[WO_CORE_LOCATION_NAME_COL].map(lambda name_val : int(name_val))
     wo_report[WO_REPORT_LC_COL] = wo_report[WO_REPORT_FIELDS_COL].map(lambda json_content : json_extract_int_val_from_key(REPORT_SAP_LC_FIELD,json_content))
 
-    # adding two extra column "wo_report_pdf_digest_sha-512" and "wo_report_pdf_byte_size"
+    # adding two extra columns for later use "wo_report_pdf_digest_sha-512" and "wo_report_pdf_byte_size"
     WO_REPORT_REPORT_BYTE_SIZE_COL              = 'wo_report_pdf_byte_size'
     wo_report[WO_REPORT_REPORT_BYTE_SIZE_COL]   = None
     WO_REPORT_REPORT_DIGEST_COL                 = 'wo_report_pdf_sha512_digest'
     wo_report[WO_REPORT_REPORT_DIGEST_COL]      = None
+
+    # adding the "wo_completion_date" by copying from wo_core
+    wo_report.insert(0,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].map(lambda date_val : date_val.isoformat(timespec='seconds') )) # type: ignore
 
 
 # writing the normalized form to the db

@@ -205,7 +205,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
         new_column = df_lifcy.map(lambda lifcy_dict : lifcy_dict[lify_columns.value] if lify_columns.value in lifcy_dict else None )
         df_wo_core.insert(3 +idx,f'{REF_WO_CORE_LIFCY_DATES_COL}.{lify_columns.value}',new_column) 
 
-    # [3] drop the lifcycleTransitionDates column
+    # [3] drop the original lifcycleTransitionDates column
     df_wo_core.drop(columns=[REF_WO_CORE_LIFCY_DATES_COL],inplace=True)
 
 
