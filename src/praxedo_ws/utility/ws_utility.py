@@ -119,7 +119,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
                   every row represent a work order report
     
     - wo_report_imgs : This contains all report field images information
-                        every row correspond to a work order report and represent an image field with its field code and url
+                        every row represent a report specifi image field with its field code and url
 
     '''
 
@@ -128,8 +128,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     '''
 
     ''' wo_core 
-    The schema for the wo_core frame is entierly defined by the soap result.
-    The result is then "flatenized" by the json_normalize() method
+    The wo_core schema is mainly defined by the "flatenization" of the soap result returned by the json_normalize() method
     The following identifyer are the few necessary colums id to allow the separaration of wo_report from the wo_core
     '''
     REF_WO_CORE_ID_COL           = 'id'
@@ -138,7 +137,8 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     REF_WO_CORE_CREA_DATE_COL    = 'coreData.creationDate'
     REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
     REF_WO_CORE_LIFCY_DATES_COL  = 'completionData.lifecycleTransitionDates'
-    REF_WO_CORE_REF_LOCATION_COL  = 'coreData.referentialData.location'
+    REF_WO_CORE_REF_LOC_COL      = 'coreData.referentialData.location'
+    REF_WO_CORE_QDATA_TYPE       = 'qualificationData.type.id'
 
     WO_CORE_UUID_COL             = 'uuid'
     WO_CORE_UUID_PROP            = 'businessEvent.extension.uuid'
@@ -182,12 +182,13 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # reordering a few columns
     pop_reindex(df_wo_core,REF_WO_CORE_ID_COL,0)
-    pop_reindex(df_wo_core,REF_WO_CORE_STATUS_COL,1)
-    pop_reindex(df_wo_core,REF_WO_CORE_CREA_DATE_COL,2)
+    pop_reindex(df_wo_core,REF_WO_CORE_QDATA_TYPE,1)
+    pop_reindex(df_wo_core,REF_WO_CORE_STATUS_COL,2)
+    pop_reindex(df_wo_core,REF_WO_CORE_CREA_DATE_COL,3)
 
     # creating the location.name column by extracting the value from the "coreData:referentialData.location.name" column
-    df_location_name = df_wo_core[REF_WO_CORE_REF_LOCATION_COL].map(lambda loc_val : loc_val['name'] if loc_val else None )
-    src_location = df_wo_core.columns.get_loc(REF_WO_CORE_REF_LOCATION_COL)
+    df_location_name = df_wo_core[REF_WO_CORE_REF_LOC_COL].map(lambda loc_val : loc_val['name'] if loc_val else None )
+    src_location = df_wo_core.columns.get_loc(REF_WO_CORE_REF_LOC_COL)
     df_wo_core.insert(src_location + 1,WO_CORE_LOCATION_NAME_COL,df_location_name) # type: ignore
 
     # create the uuid column by extracting the value from the "extensions" column
@@ -208,6 +209,11 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # [3] drop the original lifcycleTransitionDates column
     df_wo_core.drop(columns=[REF_WO_CORE_LIFCY_DATES_COL],inplace=True)
 
+    # convert every "date" dolumns into ISO 8601 strings (also removing the useless [ms]/[us] component if any)
+    for col_name in [col_name for col_name in df_wo_core.columns if col_name.lower().endswith('date') ] :
+        df_wo_core[col_name] = df_wo_core[col_name].map(lambda date_obj : date_obj.isoformat(timespec='seconds') if date_obj else None )
+
+    # .isoformat(timespec='seconds')
 
     #print('*** wo_core ****')
     #print(df_wo_core[REF_WO_CORE_FIELDS_COL])

@@ -91,7 +91,7 @@ if len(nz_results) > 0:
     wo_report[WO_REPORT_REPORT_DIGEST_COL]      = None
 
     # adding the "wo_completion_date" by copying from wo_core
-    wo_report.insert(0,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].map(lambda date_val : date_val.isoformat(timespec='seconds') )) # type: ignore
+    wo_report.insert(1,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].copy())
 
 
 # writing the normalized form to the db
