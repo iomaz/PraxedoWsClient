@@ -118,20 +118,6 @@ class PraxedoSoapClient:
         
         return list_attach_result.entities
 
-
-    class ATTACH_CONTENT(NamedTuple):
-        id      : str
-        content : bytes
-
-    def fetch_attach_contents(self, arg_attach_list: list[PraxedoSoapClient.ATTACH_INFO]):
-
-        result = [] 
-        for attach_info in arg_attach_list:
-            content = self.get_attachement_content(attach_info.id)
-            if len(content) > 0 :
-                result.append(PraxedoSoapClient.ATTACH_CONTENT(id=attach_info.id, content=content))
-
-        return result
     
     def get_attachement_content(self,arg_evt_attach_id):
         #print('ws_getAttachmentContent()...')

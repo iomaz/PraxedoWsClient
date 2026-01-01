@@ -41,7 +41,7 @@ total_duration.start()
 day_duration.start()
 print('fetch whole week begin')
 print('day 1...')
-for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(52,2024)):
+for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
     result_size = len(one_day_wo_list)
     if result_size > 0:
         total_wo_nbr += result_size
@@ -50,7 +50,7 @@ for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(52,2024)):
         # accumulate the results into a list
         nz_results.append(nz_result)
         #DEBUG
-        if day_idx == 0 : break
+        #if day_idx == 0 : break
     
     day_duration.stop()
     print(f'day {day_idx+1}:total duration:{day_duration.total_time_str()} number of work orders: {result_size}')
@@ -158,12 +158,20 @@ if len(nz_results) > 0:
                 wo_date = datetime.fromisoformat(row[2])
                 sap_or = row[3]
                 sap_lc = row[4]
-                file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_{wo_id}R_OR{sap_or}_LC{sap_lc}.pdf'
+                file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_OT{wo_id}FI_OR{sap_or}_LC{sap_lc}.pdf'
                 dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / str(wo_date.month)
                 dir_path.mkdir(parents=True, exist_ok=True)
                 full_path = dir_path / file_name
-                full_path.write_bytes(report_contents[wo_id])
+                full_path.write_bytes(report_contents[wo_id]) # writing the pdf report to the disk
 
+                # getting the list of attachements files
+                attach_list = praxedoWS.list_attachments(wo_id)
+                for idx, attach_info in enumerate(attach_list):
+                    attach_bin = praxedoWS.get_attachement_content(attach_info['id'])
+                    file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT{wo_id}PJ{idx+1}_'
+                    file_name = file_prefix + attach_info['name']
+                    full_path = dir_path / file_name
+                    full_path.write_bytes(attach_bin)
     
     pdf_fetch_duration.stop()
     print(f'total: wo nbr:{total_wo_nbr} pdf fetch duration:{pdf_fetch_duration.total_time_str()}')
