@@ -84,7 +84,7 @@ class PraxedoSoapClient:
 
     
     # if not completion date is found and the status is "COMPLETED" or "VALIDATED" then the real status is "CANCELLED"
-    def identify_and_set_cancel_status(self, entities_list:list):
+    def search_and_set_cancel_status(self, entities_list:list):
         STATUS = PraxedoSoapClient.WORK_ORDER_STATUS
         for biz_evt in entities_list:
             comp_date = False
@@ -104,9 +104,9 @@ class PraxedoSoapClient:
     def build_attachment_list(self,arg_evt_ext_id : int):
         
         result = []
-        native_attach_list = self.list_attachments(arg_evt_ext_id)
-        if len(native_attach_list) > 0:
-            result = [PraxedoSoapClient.ATTACH_INFO(id=attach_elt.id, name=attach_elt.name, size=attach_elt.size) for attach_elt in native_attach_list]
+        ws_attach_list = self.list_attachments(arg_evt_ext_id)
+        if len(ws_attach_list) > 0:
+            result = [PraxedoSoapClient.ATTACH_INFO(id=attach_elt.id, name=attach_elt.name, size=attach_elt.size) for attach_elt in ws_attach_list]
         return result
 
     def list_attachments(self,arg_evt_ext_id):
@@ -123,7 +123,7 @@ class PraxedoSoapClient:
         id      : str
         content : bytes
 
-    def fetch_attachments_contents(self, arg_attach_list: list[PraxedoSoapClient.ATTACH_INFO]):
+    def fetch_attach_contents(self, arg_attach_list: list[PraxedoSoapClient.ATTACH_INFO]):
 
         result = [] 
         for attach_info in arg_attach_list:
@@ -139,7 +139,6 @@ class PraxedoSoapClient:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             get_attach_content_result= self.bizEvt_attach_client.service.getAttachmentContent(arg_evt_attach_id)
-    
     
         return get_attach_content_result.content
     
@@ -226,7 +225,7 @@ class PraxedoSoapClient:
         
         if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
 
-        self.identify_and_set_cancel_status(get_evt_result.entities)
+        self.search_and_set_cancel_status(get_evt_result.entities)
 
         return get_evt_result
     
@@ -356,7 +355,7 @@ class PraxedoSoapClient:
                     print(f'search_work_orders: service returned an error: {return_code.name} ')
                     break
         
-        self.identify_and_set_cancel_status(search_results.entities)
+        self.search_and_set_cancel_status(search_results.entities)
 
         return total_entities
     
