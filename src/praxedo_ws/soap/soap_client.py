@@ -96,36 +96,51 @@ class PraxedoSoapClient:
                     case STATUS.COMPLETED.name |STATUS.VALIDATED.name : biz_evt.status = STATUS.CANCELLED.name  
 
     
-    class ATTACH_INFO(NamedTuple):
-        id   : str
-        name : str
-        size : int 
 
-    def build_attachment_list(self,arg_evt_ext_id : int):
-        
-        result = []
-        ws_attach_list = self.list_attachments(arg_evt_ext_id)
-        if len(ws_attach_list) > 0:
-            result = [PraxedoSoapClient.ATTACH_INFO(id=attach_elt.id, name=attach_elt.name, size=attach_elt.size) for attach_elt in ws_attach_list]
-        return result
+    class LIST_ATTACH_RETURN_CODE(Enum):    
+        SUCESS                  =  0 
+        INTERNAL_ERROR          =  1
+        NULL_ATTACH_PARAM       =  52
+        INVALID_IDENTIFIER      =  250
+        INVALID_NAME            =  251
+        UNKNOWN_BIZ_EVT_ID      =  550
+       
 
     def list_attachments(self,arg_evt_ext_id):
         # print('ws_list_attachments()...')
-    
+
+        RETURN_CODE = PraxedoSoapClient.LIST_ATTACH_RETURN_CODE
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             list_attach_result = self.bizEvt_attach_client.service.listAttachments(arg_evt_ext_id)
-        
+
+            return_code = RETURN_CODE(list_attach_result.resultCode)
+            if return_code.value > 0 : raise Exception(f'list_attachments() returned an error for the biz evt id:{arg_evt_ext_id} :{return_code.name}')
+
         return list_attach_result.entities
 
     
+
+    class GET_ATTACH_CONTENT_RETURN_CODE(Enum):    
+        SUCESS                  =  0 
+        INTERNAL_ERROR          =  1
+        INVALID_IDENTIFIER      =  250
+        INVALID_NAME            =  251
+        UNKNOWN_BIZ_EVT_ID      =  553
+
     def get_attachement_content(self,arg_evt_attach_id):
         #print('ws_getAttachmentContent()...')
         
+        RETURN_CODE = PraxedoSoapClient.GET_ATTACH_CONTENT_RETURN_CODE
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             get_attach_content_result= self.bizEvt_attach_client.service.getAttachmentContent(arg_evt_attach_id)
     
+            return_code = RETURN_CODE(get_attach_content_result.resultCode)
+            if return_code.value > 0 : raise Exception(f'get_attachement_content() returned an error for the attach id:{arg_evt_attach_id} : {return_code.name}')
+
         return get_attach_content_result.content
     
         #print(singleBisEvtAttach)
