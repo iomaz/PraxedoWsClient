@@ -3,6 +3,7 @@ import sqlite3
 import os, sys
 import hashlib
 import base64
+from pathlib import Path
 
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -122,7 +123,7 @@ if len(nz_results) > 0:
         pdf_fetch_duration.start()
         # download pdf report and update the wo_report table
         BATCH_SIZE = 25
-        sql_pdf_rows = 'SELECT wo_id, wo_report_url FROM wo_report WHERE wo_report_pdf_byte_size IS NULL'
+        sql_pdf_rows = 'SELECT wo_id, wo_report_url, wo_completion_date, wo_sap_or, wo_sap_lc  FROM wo_report WHERE wo_report_pdf_byte_size IS NULL'
         sql_pdf_rows_count =  f'SELECT COUNT(*) FROM ({sql_pdf_rows})'
         
 
@@ -137,17 +138,32 @@ if len(nz_results) > 0:
         select_cur = sqlite_db.execute(sql_pdf_rows)
         for batch_idx in range(total_batch_nbr) : 
             # downloading the report pdf files
-            batch = select_cur.fetchmany(BATCH_SIZE)
-            url_dict = { wo_id : url for wo_id, url in batch }
+            result_rows = select_cur.fetchmany(BATCH_SIZE)
+            url_dict = { row[0] : row[1] for row in result_rows }
             report_contents = delay_fetch_url_batch(url_dict,BATCH_SIZE,0.5)
             print(f'\rdownloaded : { (batch_idx+1) *BATCH_SIZE}/{total_batch_nbr * BATCH_SIZE} {math.floor(((batch_idx+1) /total_batch_nbr)*100)}% elapsed time:{pdf_fetch_duration.elapsed_time_str()}',end='',flush=True)
 
             sql_update_rows = 'UPDATE wo_report SET wo_report_pdf_byte_size = ?, wo_report_pdf_sha512_digest = ? WHERE wo_id = ?'
             #computing the report binary size and digest
-            data_update = tuple((len(report_contents[wo_no]), b64_sha512_digest(report_contents[wo_no]), wo_no) for wo_no in report_contents)
+            data_update = tuple((len(report_contents[wo_id]), b64_sha512_digest(report_contents[wo_id]), wo_id) for wo_id in report_contents)
             
             update_cur = sqlite_db.executemany(sql_update_rows,data_update)
             sqlite_db.commit()
+
+            # writing the pdf report file to disk
+            print(f'current dir:{Path.cwd()}')
+            BASE_ARCHIVE_DIR = Path('./PRAXEDO_ARCHIVE')
+            for row in result_rows:
+                wo_id = row[0]
+                wo_date = datetime.fromisoformat(row[2])
+                sap_or = row[3]
+                sap_lc = row[4]
+                file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_{wo_id}R_OR{sap_or}_LC{sap_lc}.pdf'
+                dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / str(wo_date.month)
+                dir_path.mkdir(parents=True, exist_ok=True)
+                full_path = dir_path / file_name
+                full_path.write_bytes(report_contents[wo_id])
+
     
     pdf_fetch_duration.stop()
     print(f'total: wo nbr:{total_wo_nbr} pdf fetch duration:{pdf_fetch_duration.total_time_str()}')
