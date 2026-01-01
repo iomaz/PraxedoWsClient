@@ -159,7 +159,7 @@ if len(nz_results) > 0:
                 sap_or = row[3]
                 sap_lc = row[4]
                 file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_OT{wo_id}FI_OR{sap_or}_LC{sap_lc}.pdf'
-                dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / str(wo_date.month)
+                dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / f'{wo_date.month:02d}'
                 dir_path.mkdir(parents=True, exist_ok=True)
                 full_path = dir_path / file_name
                 full_path.write_bytes(report_contents[wo_id]) # writing the pdf report to the disk
