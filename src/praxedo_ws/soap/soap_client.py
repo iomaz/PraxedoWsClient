@@ -95,8 +95,6 @@ class PraxedoSoapClient:
                 match biz_evt.status : 
                     case STATUS.COMPLETED.name |STATUS.VALIDATED.name : biz_evt.status = STATUS.CANCELLED.name  
 
-    
-
     class LIST_ATTACH_RETURN_CODE(Enum):    
         SUCESS                  =  0 
         INTERNAL_ERROR          =  1

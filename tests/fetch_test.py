@@ -141,7 +141,7 @@ if len(nz_results) > 0:
             result_rows = select_cur.fetchmany(BATCH_SIZE)
             url_dict = { row[0] : row[1] for row in result_rows }
             report_contents = delay_fetch_url_batch(url_dict,BATCH_SIZE,0.5)
-            print(f'\rdownloaded : { (batch_idx+1) *BATCH_SIZE}/{total_batch_nbr * BATCH_SIZE} {math.floor(((batch_idx+1) /total_batch_nbr)*100)}% elapsed time:{pdf_fetch_duration.elapsed_time_str()}',end='',flush=True)
+            print(f'\rdownloaded : { (batch_idx+1) *BATCH_SIZE}/{total_fetch_nbr} {math.floor(((batch_idx+1) /total_batch_nbr)*100)}% elapsed time:{pdf_fetch_duration.elapsed_time_str()}',end='',flush=True)
 
             sql_update_rows = 'UPDATE wo_report SET wo_report_pdf_byte_size = ?, wo_report_pdf_sha512_digest = ? WHERE wo_id = ?'
             #computing the report binary size and digest
@@ -151,14 +151,14 @@ if len(nz_results) > 0:
             sqlite_db.commit()
 
             # writing the pdf report file to disk
-            print(f'current dir:{Path.cwd()}')
+            print(f'writing files to disk...')
             BASE_ARCHIVE_DIR = Path('./PRAXEDO_ARCHIVE')
             for row in result_rows:
                 wo_id = row[0]
                 wo_date = datetime.fromisoformat(row[2])
                 sap_or = row[3]
                 sap_lc = row[4]
-                file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_OT{wo_id}FI_OR{sap_or}_LC{sap_lc}.pdf'
+                file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}FI_OR-{sap_or}_LC-{sap_lc}.pdf'
                 dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / f'{wo_date.month:02d}'
                 dir_path.mkdir(parents=True, exist_ok=True)
                 full_path = dir_path / file_name
@@ -167,8 +167,9 @@ if len(nz_results) > 0:
                 # getting the list of attachements files
                 attach_list = praxedoWS.list_attachments(wo_id)
                 for idx, attach_info in enumerate(attach_list):
+                    print(f'fetching the attachment id:{attach_info['id']}')
                     attach_bin = praxedoWS.get_attachement_content(attach_info['id'])
-                    file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT{wo_id}PJ{idx+1}_'
+                    file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}PJ{idx+1}_'
                     file_name = file_prefix + attach_info['name']
                     full_path = dir_path / file_name
                     full_path.write_bytes(attach_bin)

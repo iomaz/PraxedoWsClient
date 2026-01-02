@@ -20,7 +20,8 @@ def get_url_content(arg_url):
         MAX_RETRY = 2
         retryCount = 0
         warnings.simplefilter('ignore')
-        while retryCount <= 1 :   
+        while retryCount <= 1 :
+            print(f'get_url_content: url:{arg_url}')   
             result = requests.get(arg_url,verify=False)
             retry = False
             match result.status_code:
@@ -66,10 +67,10 @@ def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_de
             # launching all tasks waiting "delay" between each start
             task_to_wo = {}
             task_nbr = len(arg_url_dict)
-            for idx, wo_no in enumerate(arg_url_dict) :
+            for idx, wo_id in enumerate(arg_url_dict) :
                 sysTime.sleep(arg_delay)
-                task = executor.submit(get_url_content, arg_url_dict[wo_no])
-                task_to_wo.update({task:wo_no})
+                task = executor.submit(get_url_content, arg_url_dict[wo_id])
+                task_to_wo.update({task:wo_id})
 
             # wait for all tasks to finish
             for idx, task in enumerate(task_to_wo):
