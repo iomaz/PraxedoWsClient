@@ -65,6 +65,9 @@ if len(nz_results) > 0:
     wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
 
     print(f'total work order results nbr:{total_wo_nbr}')
+    print(f'''Memory size: wo_core {wo_core.memory_usage(deep=True).sum()}[bytes]  
+                     wo_report:{wo_report.memory_usage(deep=True).sum()}[bytes] 
+                     wo_report_imgs:{wo_report_imgs.memory_usage(deep=True).sum()}[bytes]''')
 
     # extracting json int value from given key
     def json_extract_int_val_from_key(arg_key_str:str, arg_json_content:str):
@@ -158,7 +161,7 @@ if len(nz_results) > 0:
                 wo_date = datetime.fromisoformat(row[2])
                 sap_or = row[3]
                 sap_lc = row[4]
-                file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}FI_OR-{sap_or}_LC-{sap_lc}.pdf'
+                file_name = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-FI_OR-{sap_or}_LC-{sap_lc}.pdf'
                 dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / f'{wo_date.month:02d}'
                 dir_path.mkdir(parents=True, exist_ok=True)
                 full_path = dir_path / file_name
@@ -169,7 +172,7 @@ if len(nz_results) > 0:
                 for idx, attach_info in enumerate(attach_list):
                     print(f'fetching the attachment id:{attach_info['id']}')
                     attach_bin = praxedoWS.get_attachement_content(attach_info['id'])
-                    file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}PJ{idx+1}_'
+                    file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-PJ{idx+1}_'
                     file_name = file_prefix + attach_info['name']
                     full_path = dir_path / file_name
                     full_path.write_bytes(attach_bin)
