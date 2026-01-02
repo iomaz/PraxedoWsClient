@@ -4,6 +4,7 @@ import os, sys
 import hashlib
 import base64
 from pathlib import Path
+from pympler import asizeof
 
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -14,15 +15,25 @@ from praxedo_ws.soap import PraxedoSoapClient
 from praxedo_ws.utility import *
 from test_common import *
 
+#DEBUG
+print('program begin... wait')
+time.sleep(15)
+print('program start')
+
 PROD_USER = PraxedoSoapClient.WsCredential(usr='WSDEM',
                                             psw='WsdemWsdem2358')
 
 praxedoWS = PraxedoSoapClient()
 praxedoWS.connect(PROD_USER)
 
+# DEBUG
+mem_total_raw_data = 0
 
 def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
     
+    #DEBUG
+    global mem_total_raw_data
+
     # getting all search periods
     week_days_period = get_week_days_sequence(arg_week_nbr, arg_year)
 
@@ -31,10 +42,12 @@ def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
     # searching and fetching each day and get the 
     for day_start, day_stop in week_days_period:
         wo_entities = praxedoWS.search_work_orders(WO_COMPLETED,day_start, day_stop,EXTENDED_RESULT) # type: ignore
+        mem_total_raw_data += asizeof.asizeof(wo_entities) # DEBUG
         yield wo_entities
 
 total_duration = SimplePerfClock()
 day_duration = SimplePerfClock()
+raw_results = []
 nz_results = []
 total_wo_nbr = 0
 total_duration.start()
@@ -64,10 +77,20 @@ if len(nz_results) > 0:
     wo_report       = pd.concat([elt.wo_report for elt in nz_results])
     wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
 
+    mem_wo_core     = wo_core.memory_usage(deep=True).sum() / 1000
+    mem_wo_report   = wo_report.memory_usage(deep=True).sum() / 1000 
+    mem_wo_report_imgs = wo_report_imgs.memory_usage(deep=True).sum() / 1000
+    mem_total_dataframe = mem_wo_core + mem_wo_report + mem_wo_report_imgs
+
     print(f'total work order results nbr:{total_wo_nbr}')
-    print(f'''Memory size: wo_core {wo_core.memory_usage(deep=True).sum()}[bytes]  
-                     wo_report:{wo_report.memory_usage(deep=True).sum()}[bytes] 
-                     wo_report_imgs:{wo_report_imgs.memory_usage(deep=True).sum()}[bytes]''')
+    print(f'''
+    Memory consumption :
+    Total raw data : {mem_total_raw_data / 1000} [KB]
+    DataFrames 
+    wo_core :{mem_wo_core}[KB]  
+    wo_report:{mem_wo_report}[KB]
+    wo_report_imgs:{mem_wo_report_imgs}[KB] 
+    Total :{mem_total_dataframe} [KB]''')
 
     # extracting json int value from given key
     def json_extract_int_val_from_key(arg_key_str:str, arg_json_content:str):
