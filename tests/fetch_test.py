@@ -5,6 +5,7 @@ import hashlib
 import base64
 from pathlib import Path
 from pympler import asizeof
+import gc
 
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -15,10 +16,6 @@ from praxedo_ws.soap import PraxedoSoapClient
 from praxedo_ws.utility import *
 from test_common import *
 
-#DEBUG
-print('program begin... wait')
-time.sleep(15)
-print('program start')
 
 PROD_USER = PraxedoSoapClient.WsCredential(usr='WSDEM',
                                             psw='WsdemWsdem2358')
@@ -31,8 +28,7 @@ mem_total_raw_data = 0
 
 def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
     
-    #DEBUG
-    global mem_total_raw_data
+    global mem_total_raw_data #DEBUG
 
     # getting all search periods
     week_days_period = get_week_days_sequence(arg_week_nbr, arg_year)
@@ -47,7 +43,6 @@ def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
 
 total_duration = SimplePerfClock()
 day_duration = SimplePerfClock()
-raw_results = []
 nz_results = []
 total_wo_nbr = 0
 total_duration.start()
@@ -62,6 +57,9 @@ for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
         nz_result = normalize_ws_response(one_day_wo_list)
         # accumulate the results into a list
         nz_results.append(nz_result)
+        del one_day_wo_list
+        del nz_result
+        gc.collect()
         #DEBUG
         #if day_idx == 0 : break
     
@@ -72,25 +70,13 @@ for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
     day_duration.start()
 
 # merging results
-if len(nz_results) > 0:
+total_nz_results = len(nz_results)
+if total_nz_results > 0:
     wo_core         = pd.concat([elt.wo_core for elt in nz_results])
     wo_report       = pd.concat([elt.wo_report for elt in nz_results])
     wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
 
-    mem_wo_core     = wo_core.memory_usage(deep=True).sum() / 1000
-    mem_wo_report   = wo_report.memory_usage(deep=True).sum() / 1000 
-    mem_wo_report_imgs = wo_report_imgs.memory_usage(deep=True).sum() / 1000
-    mem_total_dataframe = mem_wo_core + mem_wo_report + mem_wo_report_imgs
-
     print(f'total work order results nbr:{total_wo_nbr}')
-    print(f'''
-    Memory consumption :
-    Total raw data : {mem_total_raw_data / 1000} [KB]
-    DataFrames 
-    wo_core :{mem_wo_core}[KB]  
-    wo_report:{mem_wo_report}[KB]
-    wo_report_imgs:{mem_wo_report_imgs}[KB] 
-    Total :{mem_total_dataframe} [KB]''')
 
     # extracting json int value from given key
     def json_extract_int_val_from_key(arg_key_str:str, arg_json_content:str):
@@ -120,9 +106,27 @@ if len(nz_results) > 0:
     # adding the "wo_completion_date" by copying from wo_core
     wo_report.insert(1,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].copy())
 
+    mem_wo_core     = wo_core.memory_usage(deep=True).sum() / 1000
+    mem_wo_report   = wo_report.memory_usage(deep=True).sum() / 1000 
+    mem_wo_report_imgs = wo_report_imgs.memory_usage(deep=True).sum() / 1000
+    mem_total_dataframe = mem_wo_core + mem_wo_report + mem_wo_report_imgs
 
+    mem_total_df = asizeof.asizeof(nz_results)
+    
+    print(f'''
+    Memory consumption :
+    Total raw ws data : {mem_total_raw_data / 1000} [KB]
+    Total normalized dataframes : {mem_total_df / 1000} [KB]
+    DataFrames 
+    wo_core :{mem_wo_core}[KB]  
+    wo_report:{mem_wo_report}[KB]
+    wo_report_imgs:{mem_wo_report_imgs}[KB] 
+    Total :{mem_total_dataframe} [KB]''')
+
+    del nz_results
+    
 # writing the normalized form to the db
-if len(nz_results) > 0:
+if total_nz_results > 0:
 # write the result to db
     with sqlite3.connect(f'fetch_result.sqlite3') as sqlite_db:
 

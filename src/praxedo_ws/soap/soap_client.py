@@ -343,6 +343,7 @@ class PraxedoSoapClient:
                         resp_page_nbr += 1
                         first_result_idx += MAX_RESULTS_PER_PAGE # incrementing the first index for a multipage result 
                         total_entities += search_results.entities
+                        del search_results
                         continue    
                     else :
                         print('search_work_orders: aborted !')

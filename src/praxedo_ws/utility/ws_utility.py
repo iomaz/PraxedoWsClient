@@ -173,9 +173,9 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
         col_values = df.pop(col_name)
         df.insert(new_pos,col_name,col_values)
 
-
     # convert zeep objects to native python structures
     pyObj_entities = zeepHelper.serialize_object(arg_wo_entities_list)
+    del arg_wo_entities_list
 
     # building a data frame by normalizing the list of wo object 
     # level = 2 is enough to get a majority of useful columns
