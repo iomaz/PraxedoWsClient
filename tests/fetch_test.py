@@ -35,39 +35,41 @@ def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
 
     EXTENDED_RESULT = PraxedoSoapClient.SRCH_WO_RESULT_OPTION.EXTENDED
     WO_COMPLETED    = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
-    # searching and fetching each day and get the 
-    for day_start, day_stop in week_days_period:
-        wo_entities = praxedoWS.search_work_orders(WO_COMPLETED,day_start, day_stop,EXTENDED_RESULT) # type: ignore
-        mem_total_raw_data += asizeof.asizeof(wo_entities) # DEBUG
-        yield wo_entities
+    # searching and fetching each day
+     
+    for day_idx, day_period in enumerate(week_days_period):
+        day_start, day_stop = day_period
+        print(f'fetch_wo_week_by_day: day:{day_idx+1}')
+        for result_page in praxedoWS.search_work_orders_per_page(WO_COMPLETED,day_start, day_stop,EXTENDED_RESULT) : # type: ignore
+            mem_total_raw_data += asizeof.asizeof(result_page) # DEBUG
+            yield result_page
 
 total_duration = SimplePerfClock()
-day_duration = SimplePerfClock()
+page_duration = SimplePerfClock()
 nz_results = []
 total_wo_nbr = 0
 total_duration.start()
-day_duration.start()
+page_duration.start()
 print('fetch whole week begin')
 print('day 1...')
-for day_idx, one_day_wo_list in enumerate(fetch_wo_week_by_day(2,2025)):
-    result_size = len(one_day_wo_list)
+for page_idx, wo_page_list in enumerate(fetch_wo_week_by_day(2,2025)):
+    result_size = len(wo_page_list)
     if result_size > 0:
         total_wo_nbr += result_size
         # normalize the result
-        nz_result = normalize_ws_response(one_day_wo_list)
+        nz_result = normalize_ws_response(wo_page_list)
         # accumulate the results into a list
         nz_results.append(nz_result)
-        del one_day_wo_list
+        del wo_page_list
         del nz_result
         gc.collect()
         #DEBUG
         #if day_idx == 0 : break
     
-    day_duration.stop()
-    print(f'day {day_idx+1}:total duration:{day_duration.total_time_str()} number of work orders: {result_size}')
+    page_duration.stop()
+    print(f'page {page_idx+1}:total duration:{page_duration.total_time_str()} number of work orders: {result_size}')
     #if idx == 1 : break # DEBUG
-    print(f'day {day_idx+2}...')
-    day_duration.start()
+    page_duration.start()
 
 # merging results
 total_nz_results = len(nz_results)

@@ -296,16 +296,60 @@ class PraxedoSoapClient:
         self.searchAbort = True
     
     
+    def search_work_orders_per_page(self,arg_date_constraint:DATE_CONSTRAINT,
+                                         arg_start_date:datetime, arg_stop_date:datetime,
+                                         arg_populate_opt=SRCH_WO_RESULT_OPTION.BASIC):
+        
+        MAX_PAGE_SIZE = 50  #This is the actual maximum limit allowed by Praxedo
+        RETURN_CODE = PraxedoSoapClient.SRCH_WO_RETURN_CODE
+        # print('search_work_orders_by_page:')
+        
+        ws_search_arg =  {
+                            "typeConstraint"   :   [],
+                            "dateConstraints"  :   [
+                                        {"name": arg_date_constraint,
+                                        "dateRange":[arg_start_date.isoformat(),arg_stop_date.isoformat()] 
+                                        }
+                                                    ],
+                            
+                            "agentIdConstraint" : [],
+                            "statusConstraint " : [],
+                            "serviceOrderConstraint" : ""
+                        }
+        
+        first_result_idx   = 0
+        
+        while True:
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                search_results = self.bizEvt_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
+            
+            return_code = RETURN_CODE(search_results.resultCode)
+            match return_code : 
+                case RETURN_CODE.SUCESS :
+                    yield search_results.entities
+                    return
+                
+                case RETURN_CODE.PARTIAL_RESULT :
+                    first_result_idx += MAX_PAGE_SIZE # incrementing the first index for a multipage result 
+                    yield search_results.entities   
+                
+                case _: # in every other cases = error
+                    raise Exception(f'search_work_orders_per_page: service returned an error: {return_code.name}')
+
+
+
     def search_work_orders(self,arg_date_constraint:DATE_CONSTRAINT,
                                 arg_start_date:datetime, arg_stop_date:datetime,
                                 arg_populate_opt=SRCH_WO_RESULT_OPTION.BASIC):
         
         
-        MAX_RESULTS_PER_PAGE = 50  #This is the actual maximum limit allowed by Praxedo
+        MAX_PAGE_SIZE = 50  #This is the actual maximum limit allowed by Praxedo
         RETURN_CODE = PraxedoSoapClient.SRCH_WO_RETURN_CODE
         print('search_work_orders:')
         
-        ws_search_events_arg =  {
+        ws_search_arg =  {
                             "typeConstraint"   :   [],
                             "dateConstraints"  :   [
                                         {"name": arg_date_constraint,
@@ -330,7 +374,7 @@ class PraxedoSoapClient:
                 warnings.simplefilter('ignore')
                
                 print(f'search_work_orders: page {resp_page_nbr}')
-                search_results = self.bizEvt_client.service.searchEvents(ws_search_events_arg,MAX_RESULTS_PER_PAGE,first_result_idx,arg_populate_opt)
+                search_results = self.bizEvt_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
             
             return_code = RETURN_CODE(search_results.resultCode)
             match return_code : 
@@ -341,7 +385,7 @@ class PraxedoSoapClient:
                 case RETURN_CODE.PARTIAL_RESULT :
                     if not self.searchAbort :
                         resp_page_nbr += 1
-                        first_result_idx += MAX_RESULTS_PER_PAGE # incrementing the first index for a multipage result 
+                        first_result_idx += MAX_PAGE_SIZE # incrementing the first index for a multipage result 
                         total_entities += search_results.entities
                         del search_results
                         continue    
