@@ -1,6 +1,6 @@
 __pycache__
 dist
-*.pdf
+PRAXEDO_ARCHIVE
 *.egg-info
 *.sqlite3
 *.txt

@@ -20,25 +20,34 @@ def get_url_content(arg_url):
         MAX_RETRY = 2
         retryCount = 0
         warnings.simplefilter('ignore')
-        while retryCount <= 1 :
+
+        while retryCount <= MAX_RETRY :
+            
             print(f'get_url_content: url:{arg_url}')   
-            result = requests.get(arg_url,verify=False)
-            retry = False
+            try :
+                result = requests.get(arg_url,verify=False)
+            except Exception as e: 
+                print(f'request exception :  {e}')
+                print('retry...')
+                retryCount += 1
+                continue
+                
             match result.status_code:
-                case 200 : break # fine
-                case _ if result.status_code != 429 :
-                    print(f"Failed to download !: ErrCode:{result.status_code} Reason={result.reason} (url)={arg_url[-38:]}")
-                    return None
+                case 200 : 
+                    break # fine
                 case 429 : # too many requests
                     retryCount += 1
-                    if retryCount >= MAX_RETRY : 
-                        print('Max retry errors : return None...')
-                        return None
-                    else : 
-                        print('get_url_content():Err 429 - too many requests- wait 5[s] and retry...')
-                        print(f'url:{arg_url}')
-                        sysTime.sleep(5)
+                    print('get_url_content():Err 429 - too many requests- wait 5[s] and retry...')
+                    print(f'url:{arg_url}')
+                    sysTime.sleep(5)
+                case _  :
+                    print(f"Failed to download !: ErrCode:{result.status_code} Reason={result.reason} (url)={arg_url[-38:]}")
+                    return None
         
+        if retryCount == MAX_RETRY :
+            print('Max retry reached : return None')
+            return None
+
     return result.content
 
 def fetch_url_batch(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):

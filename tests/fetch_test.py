@@ -51,7 +51,6 @@ total_wo_nbr = 0
 total_duration.start()
 page_duration.start()
 print('fetch whole week begin')
-print('day 1...')
 for page_idx, wo_page_list in enumerate(fetch_wo_week_by_day(2,2025)):
     result_size = len(wo_page_list)
     if result_size > 0:
@@ -62,7 +61,7 @@ for page_idx, wo_page_list in enumerate(fetch_wo_week_by_day(2,2025)):
         nz_results.append(nz_result)
         del wo_page_list
         del nz_result
-        gc.collect()
+        # gc.collect()
         #DEBUG
         #if day_idx == 0 : break
     
@@ -183,6 +182,7 @@ if total_nz_results > 0:
             sqlite_db.commit()
 
             # writing the pdf report file to disk
+             
             print(f'writing files to disk...')
             BASE_ARCHIVE_DIR = Path('./PRAXEDO_ARCHIVE')
             for row in result_rows:
@@ -197,15 +197,19 @@ if total_nz_results > 0:
                 full_path.write_bytes(report_contents[wo_id]) # writing the pdf report to the disk
 
                 # getting the list of attachements files
-                attach_list = praxedoWS.list_attachments(wo_id)
-                for idx, attach_info in enumerate(attach_list):
-                    print(f'fetching the attachment id:{attach_info['id']}')
-                    attach_bin = praxedoWS.get_attachement_content(attach_info['id'])
-                    file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-PJ{idx+1}_'
-                    file_name = file_prefix + attach_info['name']
-                    full_path = dir_path / file_name
-                    full_path.write_bytes(attach_bin)
-    
+                try : 
+                    attach_list = praxedoWS.list_attachments(wo_id)
+                    for idx, attach_info in enumerate(attach_list):
+                        print(f'fetching the attachment id:{attach_info['id']}')
+                        attach_bin = praxedoWS.get_attachement_content(attach_info['id'])
+                        file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-PJ{idx+1}_'
+                        file_name = file_prefix + attach_info['name']
+                        full_path = dir_path / file_name
+                        full_path.write_bytes(attach_bin)
+                except Exception as e :
+                    print(f'exception while downlowding attachments.. {e} ')
+            
+
     pdf_fetch_duration.stop()
     print(f'total: wo nbr:{total_wo_nbr} pdf fetch duration:{pdf_fetch_duration.total_time_str()}')
 
