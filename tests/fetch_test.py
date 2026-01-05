@@ -5,7 +5,6 @@ import hashlib
 import base64
 from pathlib import Path
 from pympler import asizeof
-import gc
 
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))

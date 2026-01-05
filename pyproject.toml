@@ -8,12 +8,14 @@ name = "praxedo_web_service"
 version = "0.0.5"
 description = "A Praxedo SOAP Web Services client and utility"
 authors = [{ name = "IoMaz", email = "dizuzio@perso.ch" }]
-dependencies = ["pandas",
-                "zeep",
-                "orjson",
-                "jsonq",
-                "python-jsonpath"
-                ]
+dependencies = [
+    "pandas",
+    "zeep",
+    "orjson",
+    "jsonq",
+    "python-jsonpath",
+    "pympler>=1.1",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
