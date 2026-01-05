@@ -98,13 +98,22 @@ if total_nz_results > 0:
     wo_report[WO_REPORT_LC_COL] = wo_report[WO_REPORT_FIELDS_COL].map(lambda json_content : json_extract_int_val_from_key(REPORT_SAP_LC_FIELD,json_content))
 
     # adding two extra columns for later use "wo_report_pdf_digest_sha-512" and "wo_report_pdf_byte_size"
-    WO_REPORT_REPORT_BYTE_SIZE_COL              = 'wo_report_pdf_byte_size'
-    wo_report[WO_REPORT_REPORT_BYTE_SIZE_COL]   = None
-    WO_REPORT_REPORT_DIGEST_COL                 = 'wo_report_pdf_sha512_digest'
-    wo_report[WO_REPORT_REPORT_DIGEST_COL]      = None
+    WO_REPORT_BYTE_SIZE_COL              = 'wo_report_pdf_byte_size'
+    wo_report[WO_REPORT_BYTE_SIZE_COL]   = None
+    WO_REPORT_DIGEST_COL                 = 'wo_report_pdf_sha512_digest'
+    wo_report[WO_REPORT_DIGEST_COL]      = None
 
     # adding the "wo_completion_date" by copying from wo_core
     wo_report.insert(1,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].copy())
+
+    # building the new wo_attachments dataframe
+    WO_ATTACH_WO_ID_COL = 'wo_id'
+    WO_ATTACH_ID_COL    = 'attach_id'
+    WO_ATTACH_NAME_COL  = 'attach_name'
+    WO_ATTACH_SIZE_COL  = 'attach_byte_zize'
+    WO_ATTACH_GIGEST_COL = 'attach_sha512_digest'  
+    wo_attachments = pd.DataFrame(columns=[WO_ATTACH_WO_ID_COL,WO_ATTACH_ID_COL,WO_ATTACH_NAME_COL,WO_ATTACH_SIZE_COL,WO_ATTACH_GIGEST_COL])
+
 
     mem_wo_core     = wo_core.memory_usage(deep=True).sum() / 1000
     mem_wo_report   = wo_report.memory_usage(deep=True).sum() / 1000 

@@ -10,7 +10,6 @@ import jsonpath
 import time as sysTime
 from datetime import date, time, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
-import math
 
 # local imports
 from praxedo_ws.soap import PraxedoSoapClient
