@@ -26,6 +26,11 @@ praxedoWS.connect(PROD_USER)
 # DEBUG
 mem_total_raw_data = 0
 
+def b64_sha512_digest(data:bytes):
+    digest = hashlib.sha512(data).digest()
+    return base64.b64encode(digest).decode('utf-8') 
+
+
 def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
     
     global mem_total_raw_data #DEBUG
@@ -52,7 +57,7 @@ def fetch_attachments_list(arg_wo_id_list):
         
         #print(f'\r{idx+1}/{total_wo_nbr} attachment for the wo_id:{wo_id}',end='',flush=True)
         
-        time.sleep(0.2) # limiting the rate to stay under the max frequency allowed by the service
+        time.sleep(0.3) # limiting the rate to stay under the max frequency allowed by the service
         attach_list = praxedoWS.list_attachments(wo_id)
         
         for attach_info in attach_list :
@@ -63,6 +68,25 @@ def fetch_attachments_list(arg_wo_id_list):
             wo_attachments.loc[len(wo_attachments)] =  [wo_id, attach_id, attach_name, attach_size, None]
 
     print(f'attachement list completed')
+
+def fetch_wo_attach_contents(arg_wo_id:int):
+    
+    results = {}
+    attach_list = praxedoWS.list_attachments(arg_wo_id)
+    for attach_info in attach_list :
+        attach_dict = {}
+        attach_id  = attach_info['id']
+        content = praxedoWS.get_attachement_content(attach_id)
+        attach_dict['content'] = content
+        digest = b64_sha512_digest(content)
+        attach_dict['attach_id'] = attach_id
+        attach_dict['attach_name'] = attach_info['name']
+        attach_dict['attach_byte_size'] = len(content)
+        attach_dict['attach_sha512_digest'] = digest
+        results[arg_wo_id] = attach_dict
+        
+    return results
+
 
 # building the extra wo_attachments dataframe
 WO_ATTACH_WO_ID_COL = 'wo_id'
@@ -99,7 +123,7 @@ for page_idx, wo_page_list in enumerate(fetch_wo_week_by_day(2,2025)):
     
     page_duration.stop()
     print(f'page {page_idx+1}:total duration:{page_duration.total_time_str()} number of work orders: {result_size}')
-    #if idx == 1 : break # DEBUG
+    #if page_idx == 10  : break # DEBUG
     page_duration.start()
 
 # merging results
@@ -196,11 +220,7 @@ if total_nz_results > 0:
 
         total_fetch_nbr, = sqlite_db.execute(sql_pdf_rows_count).fetchone()
         print(f'downloading :{total_fetch_nbr} files...')
-
-        def b64_sha512_digest(data:bytes):
-            digest = hashlib.sha512(data).digest()
-            return base64.b64encode(digest).decode('utf-8')   
-
+  
         total_batch_nbr = (total_fetch_nbr + BATCH_SIZE -1) // BATCH_SIZE
         select_cur = sqlite_db.execute(sql_pdf_rows)
         for batch_idx in range(total_batch_nbr) : 
@@ -234,12 +254,12 @@ if total_nz_results > 0:
 
                 # getting the list of attachements files
                 try : 
-                    attach_list = praxedoWS.list_attachments(wo_id)
-                    for idx, attach_info in enumerate(attach_list):
-                        print(f'fetching the attachment id:{attach_info['id']}')
-                        attach_bin = praxedoWS.get_attachement_content(attach_info['id'])
+                    attach_list = wo_attachments.query(f'wo_id == @wo_id')
+                    for idx, row in enumerate(attach_list.itertuples()) :
+                        print(f'fetching the attachment id:{row.attach_id}')
+                        attach_bin = praxedoWS.get_attachement_content(row.attach_id)
                         file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-PJ{idx+1}_'
-                        file_name = file_prefix + attach_info['name']
+                        file_name = file_prefix + row.attach_name # type: ignore
                         full_path = dir_path / file_name
                         full_path.write_bytes(attach_bin)
                 except Exception as e :
