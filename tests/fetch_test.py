@@ -5,6 +5,7 @@ import hashlib
 import base64
 from pathlib import Path
 from pympler import asizeof
+import math
 
 # Add src to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -43,6 +44,34 @@ def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
             mem_total_raw_data += asizeof.asizeof(result_page) # DEBUG
             yield result_page
 
+def fetch_attachments_list(arg_wo_id_list):
+    
+    # downloading the attachements list for each wo
+    print(f'fetching attachments list ...')
+    for idx, wo_id in enumerate(arg_wo_id_list) :
+        
+        #print(f'\r{idx+1}/{total_wo_nbr} attachment for the wo_id:{wo_id}',end='',flush=True)
+        
+        time.sleep(0.2) # limiting the rate to stay under the max frequency allowed by the service
+        attach_list = praxedoWS.list_attachments(wo_id)
+        
+        for attach_info in attach_list :
+            attach_id  = attach_info['id']
+            attach_name = attach_info['name']
+            attach_size = attach_info['size']
+            # adding the row to the dataframe
+            wo_attachments.loc[len(wo_attachments)] =  [wo_id, attach_id, attach_name, attach_size, None]
+
+    print(f'attachement list completed')
+
+# building the extra wo_attachments dataframe
+WO_ATTACH_WO_ID_COL = 'wo_id'
+WO_ATTACH_ID_COL    = 'attach_id'
+WO_ATTACH_NAME_COL  = 'attach_name'
+WO_ATTACH_SIZE_COL  = 'attach_byte_zize'
+WO_ATTACH_GIGEST_COL = 'attach_sha512_digest'  
+wo_attachments = pd.DataFrame(columns=[WO_ATTACH_WO_ID_COL, WO_ATTACH_ID_COL, WO_ATTACH_NAME_COL, WO_ATTACH_SIZE_COL, WO_ATTACH_GIGEST_COL])
+
 total_duration = SimplePerfClock()
 page_duration = SimplePerfClock()
 nz_results = []
@@ -56,6 +85,10 @@ for page_idx, wo_page_list in enumerate(fetch_wo_week_by_day(2,2025)):
         total_wo_nbr += result_size
         # normalize the result
         nz_result = normalize_ws_response(wo_page_list)
+        
+        # fetching attachments list
+        fetch_attachments_list(nz_result.wo_core['id'])
+        
         # accumulate the results into a list
         nz_results.append(nz_result)
         del wo_page_list
@@ -106,15 +139,7 @@ if total_nz_results > 0:
     # adding the "wo_completion_date" by copying from wo_core
     wo_report.insert(1,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].copy())
 
-    # building the new wo_attachments dataframe
-    WO_ATTACH_WO_ID_COL = 'wo_id'
-    WO_ATTACH_ID_COL    = 'attach_id'
-    WO_ATTACH_NAME_COL  = 'attach_name'
-    WO_ATTACH_SIZE_COL  = 'attach_byte_zize'
-    WO_ATTACH_GIGEST_COL = 'attach_sha512_digest'  
-    wo_attachments = pd.DataFrame(columns=[WO_ATTACH_WO_ID_COL,WO_ATTACH_ID_COL,WO_ATTACH_NAME_COL,WO_ATTACH_SIZE_COL,WO_ATTACH_GIGEST_COL])
-
-
+    
     mem_wo_core     = wo_core.memory_usage(deep=True).sum() / 1000
     mem_wo_report   = wo_report.memory_usage(deep=True).sum() / 1000 
     mem_wo_report_imgs = wo_report_imgs.memory_usage(deep=True).sum() / 1000
@@ -148,6 +173,9 @@ if total_nz_results > 0:
         wo_report_imgs_dtype = {'wo_id':'INTEGER REFERENCES wo_report(wo_id)'} # making "wo_id" a foreign key
         wo_report_imgs.to_sql('wo_report_imgs', sqlite_db, dtype=wo_report_imgs_dtype, if_exists='replace',index=False) # type: ignore
 
+        wo_attachments_dtype = {'wo_id':'INTEGER REFERENCES wo_report(wo_id)'} # making "wo_id" a foreign key
+        wo_attachments.to_sql('wo_attachments', sqlite_db, dtype=wo_attachments_dtype, if_exists='replace',index=False) # type: ignore
+        
         sqlite_db.commit()
     
         # clearing memory
