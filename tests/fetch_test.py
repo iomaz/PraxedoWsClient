@@ -56,23 +56,25 @@ def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
 def fetch_attachments_list(arg_wo_id_list):
     
     # downloading the attachements list for each wo
-    print(f'fetching attachments list ...')
+    #print(f'fetching attachments list ...')
+    total_attach_nbr = 0
     for idx, wo_id in enumerate(arg_wo_id_list) :
         
-        print(f'\r{idx+1}/{len(arg_wo_id_list)} attachment for the wo_id:{wo_id}',end='',flush=True)
+        # print(f'\r{idx+1}/{len(arg_wo_id_list)} attachment for the wo_id:{wo_id}',end='',flush=True)
         
         time.sleep(0.05) # limiting the rate to stay under the max frequency allowed by the service
         attach_list = praxedoWS.list_attachments(wo_id)
         
         for attach_info in attach_list :
-            print('add attach list item...')
+            #print('add attach list item...')
             attach_id  = str(attach_info['id'])
             attach_name = str(attach_info['name'])
             attach_size = int(attach_info['size'])
             # adding a new row to the dataframe
             wo_attachments.loc[len(wo_attachments)] =  [int(wo_id), attach_id, attach_name, attach_size, None]
+            total_attach_nbr += 1
 
-    print(f'attachement list completed')
+    print(f'fetched {total_attach_nbr} attachment informations')
 
 def fetch_wo_attach_contents(arg_wo_id:int):
     
