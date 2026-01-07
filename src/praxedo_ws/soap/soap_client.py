@@ -25,34 +25,55 @@ class PraxedoSoapClient:
         self.biz_evt_wsdl_url       = biz_evt_wsdl_url
         self.biz_attach_wsdl_url    = biz_attach_wsdl_url
         
-        self.ws_credential              : PraxedoSoapClient.WsCredential
-        self.http_session               : Session
-        self.bizEvt_tranport            : Transport
-        self.bizEvt_client              : Client # zeep client for business events management
-        self.bizEvt_attach_transport    : Transport
-        self.bizEvt_attach_client       : Client # zeep client for business event attachement management
+        self.ws_credential          : PraxedoSoapClient.WsCredential
+        self.http_session           : Session
+        self.ws_tranport            : Transport
+        self.ws_client              : Client # zeep client for soap web service
+        self.ws_attach_transport    : Transport
+        self.ws_attach_client       : Client # zeep client for business event attachement management
+        
+        # extra attachment session
+        self.ws_credential2         : PraxedoSoapClient.WsCredential
+        self.http_session2          : Session
+        self.ws_attach_transport2   : Transport
+        self.ws_attach_client2      : Client
+        
         
         self.searchAbort          = False
     
-    def connect(self,ws_credential_arg : WsCredential):
+    def connect(self,arg_ws_cred : WsCredential, arg_ws_cred2 : WsCredential = None): # type: ignore
         """ Connect to the the service endpoint using the Zeep lib
         """
 
-        self.ws_credential = ws_credential_arg
-
+        self.ws_credential  = arg_ws_cred
+        self.ws_credential2 = arg_ws_cred2
+        
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             
             # authentication
             self.http_session           = Session()
             self.http_session.verify    = False
-            self.http_session.auth      = HTTPBasicAuth(self.ws_credential.usr, self.ws_credential.psw)  # Qual
+            self.http_session.auth      = HTTPBasicAuth(self.ws_credential.usr, self.ws_credential.psw)
                 
-            self.bizEvt_tranport            = Transport(session = self.http_session)
-            self.bizEvt_attach_transport    = Transport(session = self.http_session)
+            self.ws_tranport            = Transport(session = self.http_session)
+            self.ws_attach_transport    = Transport(session = self.http_session)
                 
-            self.bizEvt_client         = Client(wsdl = self.biz_evt_wsdl_url,    transport = self.bizEvt_tranport)
-            self.bizEvt_attach_client  = Client(wsdl = self.biz_attach_wsdl_url, transport = self.bizEvt_attach_transport)
+            self.ws_client         = Client(wsdl = self.biz_evt_wsdl_url,    transport = self.ws_tranport)
+            self.ws_attach_client  = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport)
+            
+            # creating an extra attachment client if a second credential is given
+            # this is way to double the maximum call rate by using two clients in paralel
+            self.double_sessions_attach = False
+            if self.ws_credential2 :
+                self.double_sessions_attach = True
+                self.http_session2           = Session()
+                self.http_session2.verify    = False
+                self.http_session2.auth      = HTTPBasicAuth(self.ws_credential2.usr, self.ws_credential2.psw)
+            
+                self.ws_attach_transport2    = Transport(session = self.http_session2)
+                self.ws_attach_client2       = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport2)
+                self.ws_attach_get_list_sequence_no = 0
     
     
     def close_connection(self):
@@ -107,18 +128,30 @@ class PraxedoSoapClient:
     def list_attachments(self,arg_evt_ext_id):
         # print('ws_list_attachments()...')
 
-        RETURN_CODE = PraxedoSoapClient.LIST_ATTACH_RETURN_CODE
+        RETURN_CODE = PraxedoSoapClient.LIST_ATTACH_RETURN_CODE        
+        self.ws_attach_get_list_sequence_no += 1  # incrementing the sequence no
+        
+        session_criteria = 1
+        if self.double_sessions_attach :
+            session_criteria = 2
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            list_attach_result = self.bizEvt_attach_client.service.listAttachments(arg_evt_ext_id)
+            
+            session_select = self.ws_attach_get_list_sequence_no % session_criteria
+            match session_select :
+                case 0 :
+                    #print('case 0') 
+                    list_attach_result = self.ws_attach_client.service.listAttachments(arg_evt_ext_id)
+                case 1 :
+                    #print('case 1') 
+                    list_attach_result = self.ws_attach_client2.service.listAttachments(arg_evt_ext_id)
 
             return_code = RETURN_CODE(list_attach_result.resultCode)
             if return_code.value > 0 : raise Exception(f'list_attachments() returned an error for the biz evt id:{arg_evt_ext_id} :{return_code.name}')
 
         return list_attach_result.entities
 
-    
 
     class GET_ATTACH_CONTENT_RETURN_CODE(Enum):    
         SUCESS                  =  0 
@@ -134,7 +167,7 @@ class PraxedoSoapClient:
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            get_attach_content_result= self.bizEvt_attach_client.service.getAttachmentContent(arg_evt_attach_id)
+            get_attach_content_result= self.ws_attach_client.service.getAttachmentContent(arg_evt_attach_id)
     
             return_code = RETURN_CODE(get_attach_content_result.resultCode)
             if return_code.value > 0 : raise Exception(f'get_attachement_content() returned an error for the attach id:{arg_evt_attach_id} : {return_code.name}')
@@ -218,7 +251,7 @@ class PraxedoSoapClient:
         print('Calling the getEvents service ...')
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            get_evt_result = self.bizEvt_client.service.getEvents(evt_id_list,populate_opt_arg)
+            get_evt_result = self.ws_client.service.getEvents(evt_id_list,populate_opt_arg)
 
         result_code = RESULT_CODE(get_evt_result.resultCode) 
         
@@ -323,7 +356,7 @@ class PraxedoSoapClient:
             
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
-                search_results = self.bizEvt_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
+                search_results = self.ws_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
             
             return_code = RETURN_CODE(search_results.resultCode)
             match return_code : 
@@ -378,7 +411,7 @@ class PraxedoSoapClient:
                 warnings.simplefilter('ignore')
                
                 print(f'search_work_orders: page {resp_page_nbr}')
-                search_results = self.bizEvt_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
+                search_results = self.ws_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
             
             return_code = RETURN_CODE(search_results.resultCode)
             match return_code : 

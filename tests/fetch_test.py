@@ -20,8 +20,12 @@ from test_common import *
 PROD_USER = PraxedoSoapClient.WsCredential(usr='WSDEM',
                                             psw='WsdemWsdem2358')
 
+PROD_USER2 = PraxedoSoapClient.WsCredential(usr='WSDEM2',
+                                                psw='WsdemWsdem2358')
+
+
 praxedoWS = PraxedoSoapClient()
-praxedoWS.connect(PROD_USER)
+praxedoWS.connect(PROD_USER,PROD_USER2)
 
 # DEBUG
 mem_total_raw_data = 0
@@ -55,9 +59,9 @@ def fetch_attachments_list(arg_wo_id_list):
     print(f'fetching attachments list ...')
     for idx, wo_id in enumerate(arg_wo_id_list) :
         
-        #print(f'\r{idx+1}/{total_wo_nbr} attachment for the wo_id:{wo_id}',end='',flush=True)
+        print(f'\r{idx+1}/{len(arg_wo_id_list)} attachment for the wo_id:{wo_id}',end='',flush=True)
         
-        time.sleep(0.3) # limiting the rate to stay under the max frequency allowed by the service
+        time.sleep(0.05) # limiting the rate to stay under the max frequency allowed by the service
         attach_list = praxedoWS.list_attachments(wo_id)
         
         for attach_info in attach_list :
@@ -110,16 +114,16 @@ for page_idx, wo_page_list in enumerate(fetch_wo_week_by_day(2,2025)):
         # normalize the result
         nz_result = normalize_ws_response(wo_page_list)
         
-        # fetching attachments list
+        # fetching attachments list for all fetched wo
         fetch_attachments_list(nz_result.wo_core['id'])
         
         # accumulate the results into a list
         nz_results.append(nz_result)
         del wo_page_list
         del nz_result
-        # gc.collect()
+    
         #DEBUG
-        #if day_idx == 0 : break
+        # if page_idx == 5 : break
     
     page_duration.stop()
     print(f'page {page_idx+1}:total duration:{page_duration.total_time_str()} number of work orders: {result_size}')
@@ -163,6 +167,9 @@ if total_nz_results > 0:
     # adding the "wo_completion_date" by copying from wo_core
     wo_report.insert(1,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].copy())
 
+    # fetching all atachments lists
+    #fetch_attachments_list(wo_core['id'])
+    
     
     mem_wo_core     = wo_core.memory_usage(deep=True).sum() / 1000
     mem_wo_report   = wo_report.memory_usage(deep=True).sum() / 1000 
