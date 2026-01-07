@@ -35,8 +35,8 @@ if __name__ == "__main__":
     
     # requesting a bsiness event
     #result = praxWsClient.get_bizEvt(['81215384'])
-    srch_from = datetime.strptime('06/01/26 08:00','%d/%m/%y %H:%M')
-    srch_to   = datetime.strptime('06/01/26 09:00','%d/%m/%y %H:%M')
+    srch_from = datetime.strptime('06/01/26 08:53','%d/%m/%y %H:%M')
+    srch_to   = datetime.strptime('06/01/26 08:54','%d/%m/%y %H:%M')
     
     COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
     EXTENDED_RESULT = PraxedoSoapClient.SRCH_WO_RESULT_OPTION.EXTENDED
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     pprint(f'total wo nbr = {len(result)}')
 
     pprint('result:')
-    #pprint(result)
+    pprint(result)
     
     # closing the connection
     praxWsClient.close_connection()
