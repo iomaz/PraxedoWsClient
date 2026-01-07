@@ -345,21 +345,25 @@ class PraxedoSoapClient:
                                 arg_populate_opt=SRCH_WO_RESULT_OPTION.BASIC):
         
         
+        if arg_start_date and arg_stop_date:
+            date_constraints = [
+                                    {"name": arg_date_constraint,
+                                    "dateRange":[arg_start_date.isoformat(),arg_stop_date.isoformat()] 
+                                    }
+                                ]
+        else : date_constraints = []
+
+
         MAX_PAGE_SIZE = 50  #This is the actual maximum limit allowed by Praxedo
         RETURN_CODE = PraxedoSoapClient.SRCH_WO_RETURN_CODE
         print('search_work_orders:')
         
         ws_search_arg =  {
                             "typeConstraint"   :   [],
-                            "dateConstraints"  :   [
-                                        {"name": arg_date_constraint,
-                                        "dateRange":[arg_start_date.isoformat(),arg_stop_date.isoformat()] 
-                                        }
-                                                    ],
-                            
+                            "dateConstraints"  :   date_constraints,
                             "agentIdConstraint" : [],
                             "statusConstraint " : [],
-                            "serviceOrderConstraint" : ""
+                            "serviceOrderConstraint" :""
                         }
 
 
