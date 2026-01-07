@@ -65,11 +65,12 @@ def fetch_attachments_list(arg_wo_id_list):
         attach_list = praxedoWS.list_attachments(wo_id)
         
         for attach_info in attach_list :
-            attach_id  = attach_info['id']
-            attach_name = attach_info['name']
-            attach_size = attach_info['size']
-            # adding the row to the dataframe
-            wo_attachments.loc[len(wo_attachments)] =  [wo_id, attach_id, attach_name, attach_size, None]
+            print('add attach list item...')
+            attach_id  = str(attach_info['id'])
+            attach_name = str(attach_info['name'])
+            attach_size = int(attach_info['size'])
+            # adding a new row to the dataframe
+            wo_attachments.loc[len(wo_attachments)] =  [int(wo_id), attach_id, attach_name, attach_size, None]
 
     print(f'attachement list completed')
 
@@ -237,11 +238,11 @@ if total_nz_results > 0:
             report_contents = delay_fetch_url_batch(url_dict,BATCH_SIZE,0.5)
             print(f'\rdownloaded : { (batch_idx+1) *BATCH_SIZE}/{total_fetch_nbr} {math.floor(((batch_idx+1) /total_batch_nbr)*100)}% elapsed time:{pdf_fetch_duration.elapsed_time_str()}',end='',flush=True)
 
-            sql_update_rows = 'UPDATE wo_report SET wo_report_pdf_byte_size = ?, wo_report_pdf_sha512_digest = ? WHERE wo_id = ?'
+            sql_wo_report_update = 'UPDATE wo_report SET wo_report_pdf_byte_size = ?, wo_report_pdf_sha512_digest = ? WHERE wo_id = ?'
             #computing the report binary size and digest
             data_update = tuple((len(report_contents[wo_id]), b64_sha512_digest(report_contents[wo_id]), wo_id) for wo_id in report_contents)
             
-            update_cur = sqlite_db.executemany(sql_update_rows,data_update)
+            update_cur = sqlite_db.executemany(sql_wo_report_update,data_update)
             sqlite_db.commit()
 
             # writing the pdf report file to disk
@@ -261,10 +262,18 @@ if total_nz_results > 0:
 
                 # getting the list of attachements files
                 try : 
-                    attach_list = wo_attachments.query(f'wo_id == @wo_id')
+                    attach_list = wo_attachments.query('wo_id == @wo_id')
                     for idx, row in enumerate(attach_list.itertuples()) :
                         print(f'fetching the attachment id:{row.attach_id}')
                         attach_bin = praxedoWS.get_attachement_content(row.attach_id)
+                        digest = b64_sha512_digest(attach_bin)
+                        
+                        # updating the dataframe and db with the digest
+                        update_mask = wo_attachments['attach_id'] == row.attach_id
+                        wo_attachments.loc[update_mask,'attach_sha512_digest'] = digest
+                        sql_digest_update = 'UPDATE wo_attachments SET attach_sha512_digest = ? WHERE attach_id = ?'
+                        sqlite_db.execute(sql_digest_update,(digest, row.attach_id))
+                        
                         file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-PJ{idx+1}_'
                         file_name = file_prefix + row.attach_name # type: ignore
                         full_path = dir_path / file_name
