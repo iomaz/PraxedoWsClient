@@ -35,23 +35,23 @@ def b64_sha512_digest(data:bytes):
     return base64.b64encode(digest).decode('utf-8') 
 
 
-def fetch_wo_week_by_day(arg_week_nbr:int, arg_year:int):
+def fetch_whole_week_by_page(arg_week_nbr:int, arg_year:int):
     
     global mem_total_raw_data #DEBUG
 
     # getting all search periods
-    week_days_period = get_week_days_sequence(arg_week_nbr, arg_year)
+    week_day_list = get_week_days_sequence(arg_week_nbr, arg_year)
 
     EXTENDED_RESULT = PraxedoSoapClient.SRCH_WO_RESULT_OPTION.EXTENDED
     WO_COMPLETED    = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
     # searching and fetching each day
      
-    for day_idx, day_period in enumerate(week_days_period):
+    for day_idx, day_period in enumerate(week_day_list):
         day_start, day_stop = day_period
-        print(f'fetch_wo_week_by_day: day:{day_idx+1}')
+        # print(f'fetch_wo_week_by_day: day:{day_idx+1}')
         for result_page in praxedoWS.search_work_orders_per_page(WO_COMPLETED,day_start, day_stop,EXTENDED_RESULT) : # type: ignore
             mem_total_raw_data += asizeof.asizeof(result_page) # DEBUG
-            yield result_page
+            yield day_idx+1, result_page
 
 def fetch_attachments_list(arg_wo_id_list):
     
@@ -74,25 +74,8 @@ def fetch_attachments_list(arg_wo_id_list):
             wo_attachments.loc[len(wo_attachments)] =  [int(wo_id), attach_id, attach_name, attach_size, None]
             total_attach_nbr += 1
 
-    print(f'fetched {total_attach_nbr} attachment informations')
-
-def fetch_wo_attach_contents(arg_wo_id:int):
-    
-    results = {}
-    attach_list = praxedoWS.list_attachments(arg_wo_id)
-    for attach_info in attach_list :
-        attach_dict = {}
-        attach_id  = attach_info['id']
-        content = praxedoWS.get_attachement_content(attach_id)
-        attach_dict['content'] = content
-        digest = b64_sha512_digest(content)
-        attach_dict['attach_id'] = attach_id
-        attach_dict['attach_name'] = attach_info['name']
-        attach_dict['attach_byte_size'] = len(content)
-        attach_dict['attach_sha512_digest'] = digest
-        results[arg_wo_id] = attach_dict
-        
-    return results
+    #print(f'fetched {total_attach_nbr} attachment informations')
+    return total_attach_nbr
 
 
 # building the extra wo_attachments dataframe
@@ -109,27 +92,31 @@ nz_results = []
 total_wo_nbr = 0
 total_duration.start()
 page_duration.start()
-print('fetch whole week begin')
-for page_idx, wo_page_list in enumerate(fetch_wo_week_by_day(2,2025)):
-    result_size = len(wo_page_list)
+print('Requesting whole work orders for the period...')
+for page_idx, wo_page_result in enumerate(fetch_whole_week_by_page(2,2025)):
+    day_idx, wo_list = wo_page_result
+    result_size = len(wo_list)
     if result_size > 0:
+        
         total_wo_nbr += result_size
         # normalize the result
-        nz_result = normalize_ws_response(wo_page_list)
+        nz_result = normalize_ws_response(wo_list)
         
         # fetching attachments list for all fetched wo
-        fetch_attachments_list(nz_result.wo_core['id'])
+        attach_nbr = fetch_attachments_list(nz_result.wo_core['id'])
+        
+        #print(f'day:{day_idx} page:{page_idx+1} -> work orders:{result_size} attach:{attach_nbr}')
         
         # accumulate the results into a list
         nz_results.append(nz_result)
-        del wo_page_list
+        del wo_page_result
         del nz_result
     
         #DEBUG
         # if page_idx == 5 : break
     
     page_duration.stop()
-    print(f'page {page_idx+1}:total duration:{page_duration.total_time_str()} number of work orders: {result_size}')
+    print(f'day:{day_idx} page:{page_idx+1} -> work orders:{result_size} attach:{attach_nbr} total duration:{page_duration.total_time_str()}')
     #if page_idx == 10  : break # DEBUG
     page_duration.start()
 
@@ -260,13 +247,13 @@ if total_nz_results > 0:
                 dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / f'{wo_date.month:02d}'
                 dir_path.mkdir(parents=True, exist_ok=True)
                 full_path = dir_path / file_name
+                print(f'writing the report file to disk : {file_name}')
                 full_path.write_bytes(report_contents[wo_id]) # writing the pdf report to the disk
 
                 # getting the list of attachements files
                 try : 
                     attach_list = wo_attachments.query('wo_id == @wo_id')
                     for idx, row in enumerate(attach_list.itertuples()) :
-                        print(f'fetching the attachment id:{row.attach_id}')
                         attach_bin = praxedoWS.get_attachement_content(row.attach_id)
                         digest = b64_sha512_digest(attach_bin)
                         
@@ -279,6 +266,7 @@ if total_nz_results > 0:
                         file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-PJ{idx+1}_'
                         file_name = file_prefix + row.attach_name # type: ignore
                         full_path = dir_path / file_name
+                        print(f'writing the attachment file to disk : {file_name}')
                         full_path.write_bytes(attach_bin)
                 except Exception as e :
                     print(f'exception while downlowding attachments.. {e} ')
