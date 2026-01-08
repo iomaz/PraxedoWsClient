@@ -18,10 +18,10 @@ from test_common import *
 
 
 PROD_USER = PraxedoSoapClient.WsCredential(usr='WSDEM',
-                                            psw='WsdemWsdem2358')
+                                           psw='WsdemWsdem2358')
 
 PROD_USER2 = PraxedoSoapClient.WsCredential(usr='WSDEM2',
-                                                psw='WsdemWsdem2358')
+                                            psw='WsdemWsdem2358')
 
 
 praxedoWS = PraxedoSoapClient()
@@ -35,7 +35,7 @@ def b64_sha512_digest(data:bytes):
     return base64.b64encode(digest).decode('utf-8') 
 
 
-def fetch_whole_week_by_page(arg_week_nbr:int, arg_year:int):
+def fetch_wo_week_by_page(arg_week_nbr:int, arg_year:int):
     
     global mem_total_raw_data #DEBUG
 
@@ -49,9 +49,9 @@ def fetch_whole_week_by_page(arg_week_nbr:int, arg_year:int):
     for day_idx, day_period in enumerate(week_day_list):
         day_start, day_stop = day_period
         # print(f'fetch_wo_week_by_day: day:{day_idx+1}')
-        for result_page in praxedoWS.search_work_orders_per_page(WO_COMPLETED,day_start, day_stop,EXTENDED_RESULT) : # type: ignore
+        for page_idx, result_page in enumerate(praxedoWS.search_work_orders_per_page(WO_COMPLETED,day_start, day_stop,EXTENDED_RESULT)) : # type: ignore
             mem_total_raw_data += asizeof.asizeof(result_page) # DEBUG
-            yield day_idx+1, result_page
+            yield day_idx+1, page_idx, result_page
 
 def fetch_attachments_list(arg_wo_id_list):
     
@@ -87,23 +87,27 @@ WO_ATTACH_GIGEST_COL = 'attach_sha512_digest'
 wo_attachments = pd.DataFrame(columns=[WO_ATTACH_WO_ID_COL, WO_ATTACH_ID_COL, WO_ATTACH_NAME_COL, WO_ATTACH_SIZE_COL, WO_ATTACH_GIGEST_COL])
 
 total_duration = SimplePerfClock()
+week_duration = SimplePerfClock()
 page_duration = SimplePerfClock()
 nz_results = []
 total_wo_nbr = 0
+total_attach_nbr = 0
 total_duration.start()
+week_duration.start()
 page_duration.start()
-print('Requesting whole work orders for the period...')
-for page_idx, wo_page_result in enumerate(fetch_whole_week_by_page(2,2025)):
-    day_idx, wo_list = wo_page_result
-    result_size = len(wo_list)
-    if result_size > 0:
+print('requesting all wo for a week ...')
+for wo_page_result in fetch_wo_week_by_page(1,2022) :
+    day_idx, page_idx, wo_list = wo_page_result
+    page_wo_nbr = len(wo_list)
+    if page_wo_nbr > 0:
         
-        total_wo_nbr += result_size
+        total_wo_nbr += page_wo_nbr
         # normalize the result
         nz_result = normalize_ws_response(wo_list)
         
         # fetching attachments list for all fetched wo
         attach_nbr = fetch_attachments_list(nz_result.wo_core['id'])
+        total_attach_nbr += attach_nbr
         
         #print(f'day:{day_idx} page:{page_idx+1} -> work orders:{result_size} attach:{attach_nbr}')
         
@@ -116,9 +120,13 @@ for page_idx, wo_page_result in enumerate(fetch_whole_week_by_page(2,2025)):
         # if page_idx == 5 : break
     
     page_duration.stop()
-    print(f'day:{day_idx} page:{page_idx+1} -> work orders:{result_size} attach:{attach_nbr} total duration:{page_duration.total_time_str()}')
+    print(f'day:{day_idx} page:{page_idx+1} -> Total wo:{page_wo_nbr} attach:{attach_nbr} duration:{page_duration.total_time_str()}\
+        elapsed time :{week_duration.elapsed_time_str()}')
     #if page_idx == 10  : break # DEBUG
     page_duration.start()
+
+week_duration.stop()
+print(f'Total week request duration:{week_duration.total_time_str()}')
 
 # merging results
 total_nz_results = len(nz_results)
@@ -127,13 +135,13 @@ if total_nz_results > 0:
     wo_report       = pd.concat([elt.wo_report for elt in nz_results])
     wo_report_imgs  = pd.concat([elt.wo_report_imgs for elt in nz_results])
 
-    print(f'total work order results nbr:{total_wo_nbr}')
+    print(f'total work orders:{total_wo_nbr} attachments:{total_attach_nbr}')
 
     # extracting json int value from given key
     def json_extract_int_val_from_key(arg_key_str:str, arg_json_content:str):
         json_match = jsonpath.findall(f'$[? (@.id == "{arg_key_str}")]',arg_json_content)
         if json_match: return int(json_match[0]['value']) # type: ignore
-        else : return None
+        else : return pd.NA
 
     WO_REPORT_FIELDS_COL    = 'wo_report_fields'
     REPORT_SAP_OR_FIELD     = 'F_SUB_CT_Or'
@@ -145,14 +153,14 @@ if total_nz_results > 0:
 
     # adding the "wo_sap_or" and "wo_sap_lc" columns
     WO_CORE_LOCATION_NAME_COL   = 'coreData.referentialData.location.name'
-    wo_report[WO_REPORT_OR_COL] = wo_core[WO_CORE_LOCATION_NAME_COL].map(lambda name_val : int(name_val))
+    wo_report[WO_REPORT_OR_COL] = wo_core[WO_CORE_LOCATION_NAME_COL].map(lambda name_val : int(name_val) if name_val else pd.NA)
     wo_report[WO_REPORT_LC_COL] = wo_report[WO_REPORT_FIELDS_COL].map(lambda json_content : json_extract_int_val_from_key(REPORT_SAP_LC_FIELD,json_content))
 
     # adding two extra columns for later use "wo_report_pdf_digest_sha-512" and "wo_report_pdf_byte_size"
     WO_REPORT_BYTE_SIZE_COL              = 'wo_report_pdf_byte_size'
-    wo_report[WO_REPORT_BYTE_SIZE_COL]   = None
+    wo_report[WO_REPORT_BYTE_SIZE_COL]   = pd.NA
     WO_REPORT_DIGEST_COL                 = 'wo_report_pdf_sha512_digest'
-    wo_report[WO_REPORT_DIGEST_COL]      = None
+    wo_report[WO_REPORT_DIGEST_COL]      = pd.NA
 
     # adding the "wo_completion_date" by copying from wo_core
     wo_report.insert(1,WO_COMPLETION_DATE_COL,wo_core[REF_WO_CORE_COMPLETION_DATE_COL].copy())
@@ -188,7 +196,7 @@ if total_nz_results > 0:
         wo_core_dtype = {'id': 'INTEGER PRIMARY KEY'} # making the "id" column a primary key
         wo_core.to_sql('wo_core', sqlite_db, dtype=wo_core_dtype, if_exists='replace',index=False) # type: ignore
         
-        wo_report_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_core(id)'}  # making "wo_id" a foreign key
+        wo_report_dtype = {'wo_id':'INTEGER UNIQUE REFERENCES wo_core(id)', 'wo_report_pdf_byte_size':'INTEGER'}  # making "wo_id" a foreign key
         wo_report.to_sql('wo_report', sqlite_db, dtype=wo_report_dtype, if_exists='replace',index=False) # type: ignore
 
         wo_report_imgs_dtype = {'wo_id':'INTEGER REFERENCES wo_report(wo_id)'} # making "wo_id" a foreign key
@@ -219,17 +227,18 @@ if total_nz_results > 0:
         print(f'downloading :{total_fetch_nbr} files...')
   
         total_batch_nbr = (total_fetch_nbr + BATCH_SIZE -1) // BATCH_SIZE
-        select_cur = sqlite_db.execute(sql_pdf_rows)
+        sql_cursor = sqlite_db.execute(sql_pdf_rows)
         for batch_idx in range(total_batch_nbr) : 
-            # downloading the report pdf files
-            result_rows = select_cur.fetchmany(BATCH_SIZE)
+            # downloading the report pdf files batch by batch
+            result_rows = sql_cursor.fetchmany(BATCH_SIZE) # getting a chunk of rows from the db
             url_dict = { row[0] : row[1] for row in result_rows }
             report_contents = delay_fetch_url_batch(url_dict,BATCH_SIZE,0.5)
             print(f'\rdownloaded : { (batch_idx+1) *BATCH_SIZE}/{total_fetch_nbr} {math.floor(((batch_idx+1) /total_batch_nbr)*100)}% elapsed time:{pdf_fetch_duration.elapsed_time_str()}',end='',flush=True)
 
             sql_wo_report_update = 'UPDATE wo_report SET wo_report_pdf_byte_size = ?, wo_report_pdf_sha512_digest = ? WHERE wo_id = ?'
             #computing the report binary size and digest
-            data_update = tuple((len(report_contents[wo_id]), b64_sha512_digest(report_contents[wo_id]), wo_id) for wo_id in report_contents)
+            #data_update = tuple((len(report_contents[wo_id]), b64_sha512_digest(report_contents[wo_id]), wo_id) for wo_id in report_contents)
+            data_update = [(len(report_contents[wo_id]), b64_sha512_digest(report_contents[wo_id]), wo_id) for wo_id in report_contents]
             
             update_cur = sqlite_db.executemany(sql_wo_report_update,data_update)
             sqlite_db.commit()
@@ -247,7 +256,7 @@ if total_nz_results > 0:
                 dir_path = BASE_ARCHIVE_DIR / str(wo_date.year) / f'{wo_date.month:02d}'
                 dir_path.mkdir(parents=True, exist_ok=True)
                 full_path = dir_path / file_name
-                print(f'writing the report file to disk : {file_name}')
+                print(f'report to disk : {file_name}')
                 full_path.write_bytes(report_contents[wo_id]) # writing the pdf report to the disk
 
                 # getting the list of attachements files
@@ -266,7 +275,7 @@ if total_nz_results > 0:
                         file_prefix = f'{wo_date.strftime(r'%Y-%m-%d')}_OT-{wo_id}-PJ{idx+1}_'
                         file_name = file_prefix + row.attach_name # type: ignore
                         full_path = dir_path / file_name
-                        print(f'writing the attachment file to disk : {file_name}')
+                        print(f'attachment to disk : {file_name}')
                         full_path.write_bytes(attach_bin)
                 except Exception as e :
                     print(f'exception while downlowding attachments.. {e} ')

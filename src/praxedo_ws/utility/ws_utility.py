@@ -22,7 +22,7 @@ def get_url_content(arg_url):
 
         while retryCount <= MAX_RETRY :
             
-            print(f'get_url_content: url:{arg_url}')   
+            #print(f'get_url_content: url:{arg_url}')   
             try :
                 result = requests.get(arg_url,verify=False)
             except Exception as e: 
@@ -73,18 +73,19 @@ def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_de
         warnings.simplefilter('ignore')
         with ThreadPoolExecutor(max_workers=arg_batch_size) as executor:
             # launching all tasks waiting "delay" between each start
-            task_to_wo = {}
+            task_to_url_ref = {}
             task_nbr = len(arg_url_dict)
-            for idx, wo_id in enumerate(arg_url_dict) :
+            for idx, url_ref in enumerate(arg_url_dict) :
                 sysTime.sleep(arg_delay)
-                task = executor.submit(get_url_content, arg_url_dict[wo_id])
-                task_to_wo.update({task:wo_id})
+                task = executor.submit(get_url_content, arg_url_dict[url_ref])
+                task_to_url_ref.update({task:url_ref})
 
             # wait for all tasks to finish
-            for idx, task in enumerate(task_to_wo):
+            for idx, task in enumerate(task_to_url_ref):
                 task_result = task.result() # wait for this task to finish
-                completed_wo_no = task_to_wo[task]
-                results.update({completed_wo_no : task_result})
+                url_ref = task_to_url_ref[task]
+                #print(f'fetched the url with ref={url_ref}')
+                results.update({url_ref : task_result})
     
     return results
 
