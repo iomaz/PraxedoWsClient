@@ -106,14 +106,37 @@ def get_week_days_sequence(week: int, year: int):
     return period_list
 
 
-class NORMALIZED_DF_RESULT(NamedTuple):
+class NORMALIZED_WO_RESULTS(NamedTuple):
     wo_core         : pd.DataFrame
     wo_report       : pd.DataFrame
     wo_report_imgs  : pd.DataFrame
 
-def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE):
+
+class WO_CORE_BASE(NamedTuple):
+    ID_COL          = 'id'
+    STATUS_COL      = 'status'
+    EXTENSIONS_COL  = 'extensions'
+    CREA_DATE_COL   = 'coreData.creationDate'
+    FIELDS_COL      = 'completionData.fields'
+    LIFCY_DATES_COL = 'completionData.lifecycleTransitionDates'
+    LOCATION_COL    = 'coreData.referentialData.location'
+    QDATA_TYPE      = 'qualificationData.type.id'
+    
+# lifecycle dates
+class WO_CORE_LIFCY_DATES_COL(Enum):
+    COMMUNI      = 'communicationDate'
+    APPOINT      = 'appointmentDate'
+    SCHEDU       = 'schedulingDate'
+    PDA_LOAD     = 'pdaLoadingDate'
+    PDA_UNLOAD   = 'pdaUnloadingDate'
+    START        = 'startDate'
+    COMPLETION   = 'completionDate'
+    VALIDATION   = 'validationDate'
+    LAST_MODI    = 'lastModificationDate' 
+
+def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE) -> NORMALIZED_WO_RESULTS :
     '''
-    The function basically normalize a raw SOAP web service response to get a convinient shema manly separating work order and work order report information
+    The function basically normalize a raw Praxedo SOAP web service response to get a convinient shema manly separating work order and work order report information
     The returned result is a "normalized model" with 3x frames
     It does not load any extra information as its purpose is only to get convinient structure for further processing.
 
@@ -138,33 +161,13 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     '''
 
     ''' wo_core 
-    The wo_core schema is mainly defined by the "flatenization" of the soap result returned by the json_normalize() method
+    The wo_core schema is mainly implicitely defined by the "flatenization" of the soap result returned by the json_normalize() method
     The following identifyer are the few necessary colums id to allow the separaration of wo_report from the wo_core
     '''
-    REF_WO_CORE_ID_COL           = 'id'
-    REF_WO_CORE_STATUS_COL       = 'status'
-    REF_WO_CORE_EXTENSION_COL    = 'extensions'
-    REF_WO_CORE_CREA_DATE_COL    = 'coreData.creationDate'
-    REF_WO_CORE_FIELDS_COL       = 'completionData.fields'
-    REF_WO_CORE_LIFCY_DATES_COL  = 'completionData.lifecycleTransitionDates'
-    REF_WO_CORE_REF_LOC_COL      = 'coreData.referentialData.location'
-    REF_WO_CORE_QDATA_TYPE       = 'qualificationData.type.id'
-
     WO_CORE_UUID_COL             = 'uuid'
     WO_CORE_UUID_PROP            = 'businessEvent.extension.uuid'
     WO_CORE_LOCATION_NAME_COL    = 'coreData.referentialData.location.name'
 
-    # lifecycle dates
-    class WO_CORE_LIFCY_DATES_COL(Enum):
-        COMMUNI      = 'communicationDate'
-        APPOINT      = 'appointmentDate'
-        SCHEDU       = 'schedulingDate'
-        PDA_LOAD     = 'pdaLoadingDate'
-        PDA_UNLOAD   = 'pdaUnloadingDate'
-        START        = 'startDate'
-        COMPLETION   = 'completionDate'
-        VALIDATION   = 'validationDate'
-        LAST_MODI    = 'lastModificationDate' 
 
     ''' wo_report
     '''
@@ -191,33 +194,33 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
     # reordering a few columns
-    pop_reindex(df_wo_core,REF_WO_CORE_ID_COL,0)
-    pop_reindex(df_wo_core,REF_WO_CORE_QDATA_TYPE,1)
-    pop_reindex(df_wo_core,REF_WO_CORE_STATUS_COL,2)
-    pop_reindex(df_wo_core,REF_WO_CORE_CREA_DATE_COL,3)
+    pop_reindex(df_wo_core, WO_CORE_BASE.ID_COL, 0)
+    pop_reindex(df_wo_core, WO_CORE_BASE.QDATA_TYPE, 1)
+    pop_reindex(df_wo_core, WO_CORE_BASE.STATUS_COL, 2)
+    pop_reindex(df_wo_core, WO_CORE_BASE.CREA_DATE_COL, 3)
 
     # creating the location.name column by extracting the value from the "coreData:referentialData.location.name" column
-    df_location_name = df_wo_core[REF_WO_CORE_REF_LOC_COL].map(lambda loc_val : loc_val['name'] if loc_val else None )
-    src_location = df_wo_core.columns.get_loc(REF_WO_CORE_REF_LOC_COL)
+    df_location_name = df_wo_core[WO_CORE_BASE.LOCATION_COL].map(lambda loc_val : loc_val['name'] if loc_val else None )
+    src_location = df_wo_core.columns.get_loc(WO_CORE_BASE.LOCATION_COL)
     df_wo_core.insert(src_location + 1,WO_CORE_LOCATION_NAME_COL,df_location_name) # type: ignore
 
     # create the uuid column by extracting the value from the "extensions" column
-    df_extensions = df_wo_core[REF_WO_CORE_EXTENSION_COL].map(lambda xtsion_tab : { xtsion_prop['key'] : xtsion_prop['value'] for xtsion_prop in xtsion_tab} )
+    df_extensions = df_wo_core[WO_CORE_BASE.EXTENSIONS_COL].map(lambda xtsion_tab : { xtsion_prop['key'] : xtsion_prop['value'] for xtsion_prop in xtsion_tab} )
     df_uuid = df_extensions.map(lambda xtsion_dict : xtsion_dict[WO_CORE_UUID_PROP] if WO_CORE_UUID_PROP in xtsion_dict else None)
     # insert the uuid column just after the extensions column
     df_wo_core.insert(df_wo_core.columns.get_loc(REF_WO_CORE_EXTENSION_COL) + 1, WO_CORE_UUID_COL, df_uuid) # type: ignore
 
     # expand the content of the "lifecycleTransitionDates" column into the lifecycle dates columns  
     # [1] tranform the 'lifecycleTransitionDates" collection into a single dictionary 
-    df_lifcy = df_wo_core[REF_WO_CORE_LIFCY_DATES_COL].map(lambda lifcy_tab : { lifcy_elt['name'] : lifcy_elt['date'] for lifcy_elt in lifcy_tab})
+    df_lifcy = df_wo_core[WO_CORE_BASE.LIFCY_DATES_COL].map(lambda lifcy_tab : { lifcy_elt['name'] : lifcy_elt['date'] for lifcy_elt in lifcy_tab})
 
     # [2] copy all date to every associated columns 
     for idx, lify_columns in enumerate(WO_CORE_LIFCY_DATES_COL) :
         new_column = df_lifcy.map(lambda lifcy_dict : lifcy_dict[lify_columns.value] if lify_columns.value in lifcy_dict else None )
-        df_wo_core.insert(3 +idx,f'{REF_WO_CORE_LIFCY_DATES_COL}.{lify_columns.value}',new_column) 
+        df_wo_core.insert(3 +idx,f'{WO_CORE_BASE.LIFCY_DATES_COL}.{lify_columns.value}',new_column) 
 
     # [3] drop the original lifcycleTransitionDates column
-    df_wo_core.drop(columns=[REF_WO_CORE_LIFCY_DATES_COL],inplace=True)
+    df_wo_core.drop(columns=[WO_CORE_BASE.LIFCY_DATES_COL],inplace=True)
 
     # convert every "date" dolumns into ISO 8601 strings (also removing the useless [ms]/[us] component if any)
     for col_name in [col_name for col_name in df_wo_core.columns if col_name.lower().endswith('date') ] :
@@ -244,16 +247,16 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # creating the table by copying the work order "id"
 
     df_wo_report = pd.DataFrame(columns=[WO_REPORT_ID_COL,WO_REPORT_URL_COL,WO_REPORT_FIELDS_COL])
-    df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[REF_WO_CORE_ID_COL]].copy() # copy the 'id" column fron the wo_core to the wo_report
+    df_wo_report[WO_REPORT_ID_COL] = df_wo_core[[WO_CORE_BASE.ID_COL]].copy() # copy the 'id" column fron the wo_core to the wo_report
 
     # build the report url out of the uuid and base url
     df_wo_report[WO_REPORT_URL_COL] = df_wo_core[WO_CORE_UUID_COL].map(lambda uuid : f'{arg_base_url}/rest/api/v1/workOrder/uuid:{uuid}/render' )
 
     # copy the 'fields" column from the wo_core frame
-    df_wo_report[WO_REPORT_FIELDS_COL] = df_wo_core[REF_WO_CORE_FIELDS_COL].copy()
+    df_wo_report[WO_REPORT_FIELDS_COL] = df_wo_core[WO_CORE_BASE.FIELDS_COL].copy()
 
     # dropping the report fields column from the original frame
-    df_wo_core.drop(columns=[REF_WO_CORE_FIELDS_COL],inplace=True)
+    df_wo_core.drop(columns=[WO_CORE_BASE.FIELDS_COL],inplace=True)
 
     #print('*** wo_report ****')
     #print(df_wo_report)
@@ -275,6 +278,6 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # returning a named tuple with a the reference to the 3x frame
     
-    result = NORMALIZED_DF_RESULT(wo_core = df_wo_core, wo_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
+    result = NORMALIZED_WO_RESULTS(wo_core = df_wo_core, wo_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
 
     return result
