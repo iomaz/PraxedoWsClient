@@ -4,7 +4,7 @@ requires = ["setuptools>=80.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "praxedo_web_service"
+name = "praxedo_ws"
 version = "0.2.0"
 description = "A Praxedo SOAP Web Services client and utility"
 authors = [{ name = "IoMaz", email = "dizuzio@perso.ch" }]
