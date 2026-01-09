@@ -5,7 +5,6 @@ from zeep import helpers as zeepHelper
 import requests
 import pandas as pd
 import orjson
-from jsonQ import Query
 import jsonpath
 import time as sysTime
 from datetime import date, time, datetime, timedelta
