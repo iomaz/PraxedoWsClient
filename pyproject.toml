@@ -12,7 +12,6 @@ dependencies = [
     "pandas",
     "zeep",
     "orjson",
-    "jsonq",
     "python-jsonpath",
     "pympler>=1.1",
 ]
