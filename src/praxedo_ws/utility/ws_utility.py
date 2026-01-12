@@ -93,14 +93,17 @@ def get_week_days_sequence(week: int, year: int):
     Return a sequence of tuple covering a given week
     Each element of the sequence is a day period representing by a tuple (start_date, stop_date)
     """
-    one_day = timedelta(days=1)
-    start_day = date.fromisocalendar(year, week, 1) - one_day  # the Sunday of the given week
-    start_day = datetime.combine(start_day,time(hour=23, minute=59, second=0))
+    one_day     = timedelta(days=1)
+    start_day   = date.fromisocalendar(year, week, 1)  # the monday of the given week
+    start_day   = datetime.combine(start_day,time(hour= 0, minute=0, second=0) )
+    stop_day    = datetime.combine(start_day,time(hour= 23, minute= 59, second= 59) )
 
-    period_list = [(start_day, start_day + one_day)]
-    for idx in range(6):
-        last = period_list[-1] # latest element of the list
-        period_list += [(last[1], last[1] + one_day)]
+    period_list = []
+    for _ in range(7):
+        #last = period_list[-1] # latest element of the list
+        period_list.append( (start_day, stop_day) )
+        start_day += one_day
+        stop_day  += one_day
 
     return period_list
 
