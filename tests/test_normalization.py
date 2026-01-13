@@ -16,10 +16,10 @@ from praxedo_ws.soap import PraxedoSoapClient
 from praxedo_ws.utility import *
 
 # Praxedo Qual credential
-QUAL_AUTH = PraxedoSoapClient.WsCredential(usr='qua.webservice',
+QUAL_AUTH = PraxedoSoapClient.UserCredential(usr='qua.webservice',
                                            psw='#Qua.webservice-1/*')
 
-PROD_AUTH = PraxedoSoapClient.WsCredential(usr='WSDEM',
+PROD_AUTH = PraxedoSoapClient.UserCredential(usr='WSDEM',
                                            psw='WsdemWsdem2358')
 
 if __name__ == "__main__":

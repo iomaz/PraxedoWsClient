@@ -17,10 +17,10 @@ from praxedo_ws.utility import *
 from test_common import *
 
 
-PROD_USER = PraxedoSoapClient.WsCredential(usr='WSDEM',
+PROD_USER = PraxedoSoapClient.UserCredential(usr='WSDEM',
                                            psw='WsdemWsdem2358')
 
-PROD_USER2 = PraxedoSoapClient.WsCredential(usr='WSDEM2',
+PROD_USER2 = PraxedoSoapClient.UserCredential(usr='WSDEM2',
                                             psw='WsdemWsdem2358')
 
 

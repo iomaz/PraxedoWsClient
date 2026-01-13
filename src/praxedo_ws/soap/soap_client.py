@@ -15,7 +15,7 @@ class PraxedoSoapClient:
         BIZ_EVT         = f'{BASE}/services/cxf/v6.1/BusinessEventManager?wsdl'
         BIZ_EVT_ATTACH  = f'{BASE}/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
 
-    class WsCredential(NamedTuple):
+    class UserCredential(NamedTuple):
         usr : str
         psw : str
      
@@ -25,7 +25,7 @@ class PraxedoSoapClient:
         self.biz_evt_wsdl_url       = biz_evt_wsdl_url
         self.biz_attach_wsdl_url    = biz_attach_wsdl_url
         
-        self.ws_credential          : PraxedoSoapClient.WsCredential
+        self.ws_credential          : PraxedoSoapClient.UserCredential
         self.http_session           : Session
         self.ws_tranport            : Transport
         self.ws_client              : Client # zeep client for soap web service
@@ -33,7 +33,7 @@ class PraxedoSoapClient:
         self.ws_attach_client       : Client # zeep client for business event attachement management
         
         # extra attachment session
-        self.ws_credential2         : PraxedoSoapClient.WsCredential
+        self.ws_credential2         : PraxedoSoapClient.UserCredential
         self.http_session2          : Session
         self.ws_attach_transport2   : Transport
         self.ws_attach_client2      : Client
@@ -41,7 +41,7 @@ class PraxedoSoapClient:
         
         self.searchAbort          = False
     
-    def connect(self,arg_ws_cred : WsCredential, arg_ws_cred2 : WsCredential = None): # type: ignore
+    def connect(self,arg_ws_cred : UserCredential, arg_ws_cred2 : UserCredential = None): # type: ignore
         """ Connect to the the service endpoint using the Zeep lib
         """
 

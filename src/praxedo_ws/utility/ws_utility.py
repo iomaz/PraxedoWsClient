@@ -145,12 +145,12 @@ class WO_REPORT_IMGS(NamedTuple) :
     IMG_FIELD_ID_COL    = 'wo_report_field_id'
     IMG_URL_COL          = 'wo_report_img_url'
 
-class NORMALIZED_WO_RESULTS(NamedTuple):
+class NORMALIZED_WO_FRAMES(NamedTuple):
     wo_core         : pd.DataFrame
     wo_report       : pd.DataFrame
     wo_report_imgs  : pd.DataFrame
 
-def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE) -> NORMALIZED_WO_RESULTS :
+def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE) -> NORMALIZED_WO_FRAMES :
     '''
     The function basically normalize a raw Praxedo SOAP web service response to get a convinient schema that separate work order and work order report information
     The returned result is a "normalized model" with 3x frames (tables)
@@ -269,6 +269,6 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # returning a named tuple with a the reference to the 3x frame
     
-    result = NORMALIZED_WO_RESULTS(wo_core = df_wo_core, wo_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
+    result = NORMALIZED_WO_FRAMES(wo_core = df_wo_core, wo_report = df_wo_report, wo_report_imgs = df_wo_report_imgs)
 
     return result
