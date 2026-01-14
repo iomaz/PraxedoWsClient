@@ -141,9 +141,9 @@ class WO_REPORT(NamedTuple) :
     FIELDS_COL    = 'wo_report_fields'
 
 class WO_REPORT_IMGS(NamedTuple) :
-    WO_ID_COL              = 'wo_id'
-    IMG_FIELD_ID_COL    = 'wo_report_field_id'
-    IMG_URL_COL          = 'wo_report_img_url'
+    WO_ID_COL         = 'wo_id'
+    IMG_FIELD_ID_COL  = 'wo_report_field_id'
+    IMG_URL_COL       = 'wo_report_img_url'
 
 class NORMALIZED_WO_FRAMES(NamedTuple):
     wo_core         : pd.DataFrame
