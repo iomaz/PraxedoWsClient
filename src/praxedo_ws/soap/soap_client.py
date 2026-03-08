@@ -320,7 +320,7 @@ class PraxedoSoapClient:
         MISSING_DATE_INPUT      =  152
         INCOMPLETE_DATE_INPUT   =  153
         ONE_DATE_INPUT_INVALID  =  154
-        TOO_MANY_RESULTS        =  155
+        TOO_MANY_RESULTS    =  155
         UNKNOWN_CONTRACT        =  157
         PARTIAL_RESULT          =  200
                                  
@@ -369,7 +369,7 @@ class PraxedoSoapClient:
                     yield search_results.entities   
                 
                 case _: # in every other cases = error
-                    raise Exception(f'search_work_orders_per_page: service returned an error: {return_code.name}')
+                    raise Exception(f'search_work_orders_per_page: service returned an error: {return_code.name}',return_code)
 
 
 
