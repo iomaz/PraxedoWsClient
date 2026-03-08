@@ -320,7 +320,7 @@ class PraxedoSoapClient:
         MISSING_DATE_INPUT      =  152
         INCOMPLETE_DATE_INPUT   =  153
         ONE_DATE_INPUT_INVALID  =  154
-        TOO_MANY_RESULTS    =  155
+        TOO_MANY_RESULTS        =  155
         UNKNOWN_CONTRACT        =  157
         PARTIAL_RESULT          =  200
                                  
