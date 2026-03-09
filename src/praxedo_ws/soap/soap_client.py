@@ -361,11 +361,13 @@ class PraxedoSoapClient:
             return_code = RETURN_CODE(search_results.resultCode)
             match return_code : 
                 case RETURN_CODE.SUCESS :
+                    self.search_and_set_cancel_status(search_results.entities)
                     yield search_results.entities
                     return
                 
                 case RETURN_CODE.PARTIAL_RESULT :
                     first_result_idx += MAX_PAGE_SIZE # incrementing the first index for a multipage result 
+                    self.search_and_set_cancel_status(search_results.entities)
                     yield search_results.entities   
                 
                 case _: # in every other cases = error
