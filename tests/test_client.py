@@ -31,7 +31,7 @@ if __name__ == "__main__":
     praxWsClient = PraxedoSoapClient()
     
     # opening a connection
-    praxWsClient.connect(PROD_USER)
+    praxWsClient.open_session(PROD_USER)
     
     # requesting a bsiness event
     #result = praxWsClient.get_bizEvt(['81215384'])
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     pprint(result)
     
     # closing the connection
-    praxWsClient.close_connection()
+    praxWsClient.close_session()
 
     print('program end')
 

@@ -25,7 +25,7 @@ PROD_USER2 = PraxedoSoapClient.UserCredential(usr='WSDEM2',
 
 
 praxedoWS = PraxedoSoapClient()
-praxedoWS.connect(PROD_USER,PROD_USER2)
+praxedoWS.open_session(PROD_USER,PROD_USER2)
 
 # DEBUG
 mem_total_raw_data = 0

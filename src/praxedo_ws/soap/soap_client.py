@@ -41,7 +41,7 @@ class PraxedoSoapClient:
         
         self.searchAbort          = False
     
-    def connect(self,arg_ws_cred : UserCredential, arg_ws_cred2 : UserCredential = None): # type: ignore
+    def open_session(self,arg_ws_cred : UserCredential, arg_ws_cred2 : UserCredential = None): # type: ignore
         """ Connect to the the service endpoint using the Zeep lib
         """
 
@@ -76,8 +76,10 @@ class PraxedoSoapClient:
                 self.ws_attach_get_list_sequence_no = 0
     
     
-    def close_connection(self):
+    def close_session(self):
         self.http_session.close()
+        if self.http_session2 : 
+            self.http_session2.close()
         
     
     class DATE_CONSTRAINT(NamedTuple):

@@ -30,7 +30,7 @@ if __name__ == "__main__":
     praxWsClient = PraxedoSoapClient()
     
     # opening a connection
-    praxWsClient.connect(QUAL_AUTH)
+    praxWsClient.open_session(QUAL_AUTH)
     
     # requesting a business event
     #get_evt_results = praxWsClient.get_bizEvt(['83007173'],PraxedoSoapClient.SRCH_BIZEVT_POPUL_OPT_SET.EXTENDED)
