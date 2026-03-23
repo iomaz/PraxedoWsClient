@@ -217,7 +217,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # convert every "date" dolumns into ISO 8601 strings (also removing the useless [ms]/[us] component if any)
     for col_name in [col_name for col_name in df_wo_core.columns if col_name.lower().endswith('date') ] :
-        df_wo_core[col_name] = df_wo_core[col_name].map(lambda date_obj : date_obj.isoformat(timespec='seconds') if date_obj else None )
+        df_wo_core[col_name] = df_wo_core[col_name].map(lambda date_obj : date_obj.isoformat(timespec='seconds') if isinstance(date_obj,datetime) else None )
 
     #print('*** wo_core ****')
     #print(df_wo_core[REF_WO_CORE_FIELDS_COL])
