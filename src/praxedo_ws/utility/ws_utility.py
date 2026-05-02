@@ -256,13 +256,38 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
      # ------------------- Building the wo_report_img data frame ----------------------------------------------------------------------------------------
     df_wo_report_imgs = pd.DataFrame(columns=[WO_REPORT_IMGS.WO_ID_COL, WO_REPORT_IMGS.IMG_FIELD_ID_COL, WO_REPORT_IMGS.IMG_URL_COL])
 
-    #for report_field_row in df_wo_report[WO_REPORT_FIELDS_COL] :
+    # looking for image fields
     for index, wo_report_row in df_wo_report.iterrows():
-        img_fields = jsonpath.findall("$[? (@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true')]",wo_report_row[WO_REPORT.FIELDS_COL])
-        for img_field in img_fields :
+        
+        # looking for standard image fields
+        image_condition_path = "@.extensions[0].key == 'binaryData.available') && (@.extensions[0].value == 'true'"
+        std_img_fields = jsonpath.findall(f"$[?({image_condition_path}) ]",wo_report_row[WO_REPORT.FIELDS_COL])
+        
+        # extracting standard image fields
+        for img_field in std_img_fields :
             field_id = img_field['id'] # type: ignore
             img_url  = img_field['value'] # type: ignore
             df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT.ID_COL], field_id, img_url]
+
+        # looking for table imbedded image fields
+        img_table_fields = jsonpath.findall(f"$..[?(@.rows[?(@.cells[?({image_condition_path})])])]",wo_report_row[WO_REPORT.FIELDS_COL])
+
+        # extracting table imbedded image fields
+        for tab_img_field in img_table_fields :
+            table_id = tab_img_field['id'] # type: ignore
+            table_rows = tab_img_field['rows'] # type: ignore
+            for row_idx, tab_row in enumerate(table_rows,1) :
+                table_cells = tab_row['cells']
+                for tab_cell in table_cells :
+                    extension_tab = tab_cell['extensions']
+                    if  len(extension_tab) > 0 :
+                        key     = extension_tab[0]['key']
+                        value   = extension_tab[0]['value']
+                        bin_available =  ( key == 'binaryData.available') and ( value == 'true')
+                        if bin_available :
+                            field_id = f'{table_id}.{tab_cell['id']}_{row_idx}'
+                            img_url = tab_cell['value']
+                            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT.ID_COL], field_id, img_url]
     
     #print('*** wo_report_imgs ****')
     #print(df_wo_report_imgs)

@@ -253,15 +253,15 @@ class PraxedoSoapClient:
         print('Calling the getEvents service ...')
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            get_evt_result = self.ws_client.service.getEvents(evt_id_list,populate_opt_arg)
+            get_evt_results = self.ws_client.service.getEvents(evt_id_list,populate_opt_arg)
 
-        result_code = RESULT_CODE(get_evt_result.resultCode) 
+        result_code = RESULT_CODE(get_evt_results.resultCode) 
         
         if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
 
-        self.search_and_set_cancel_status(get_evt_result.entities)
+        self.search_and_set_cancel_status(get_evt_results.entities)
 
-        return get_evt_result
+        return get_evt_results.entities
     
     
     class SRCH_WO_RESULT_OPTION(NamedTuple):
