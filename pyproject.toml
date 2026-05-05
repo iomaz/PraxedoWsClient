@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "praxedo_ws"
-version = "0.3.4"
+version = "0.3.5"
 description = "A Praxedo SOAP Web Services client and utility"
 authors = [{ name = "IoMaz", email = "dizuzio@perso.ch" }]
 dependencies = [

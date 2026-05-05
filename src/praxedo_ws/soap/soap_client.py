@@ -333,14 +333,15 @@ class PraxedoSoapClient:
     
     def search_work_orders_per_page(self,arg_date_constraint:DATE_CONSTRAINT,
                                          arg_start_date:datetime, arg_stop_date:datetime,
-                                         arg_populate_opt=SRCH_WO_RESULT_OPTION.BASIC):
+                                         arg_populate_opt=SRCH_WO_RESULT_OPTION.BASIC,
+                                         arg_order_type_constraints = []):
         
         MAX_PAGE_SIZE = 50  #This is the actual maximum limit allowed by Praxedo
         RETURN_CODE = PraxedoSoapClient.SRCH_WO_RETURN_CODE
         # print('search_work_orders_by_page:')
         
         ws_search_arg =  {
-                            "typeConstraint"   :   [],
+                            "typeConstraint"   :   arg_order_type_constraints,
                             "dateConstraints"  :   [
                                         {"name": arg_date_constraint,
                                         "dateRange":[arg_start_date.isoformat(),arg_stop_date.isoformat()] 
