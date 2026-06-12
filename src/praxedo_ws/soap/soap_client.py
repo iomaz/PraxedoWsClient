@@ -189,8 +189,6 @@ class PraxedoSoapClient:
         TOO_MANY_EVENT_REQUESTED    = 51
         UNKNOWN_CONTRACT            = 157
                             
-    
-    
     """
     #region
         **** 21x possible options : see : https://support.praxedo.com/hc/fr/articles/115004095289-Gestion-des-interventions#getevents
@@ -257,7 +255,7 @@ class PraxedoSoapClient:
 
         result_code = RESULT_CODE(get_evt_results.resultCode) 
         
-        if result_code.value > 0 : raise Exception(f'get_bizEvt returned an error : {result_code.name}')
+        if result_code.value > 0 : raise Exception(f'get_work_orders() returned an error : {result_code.name}')
 
         self.search_and_set_cancel_status(get_evt_results.entities)
 
