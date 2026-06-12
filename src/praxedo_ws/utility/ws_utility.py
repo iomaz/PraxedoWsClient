@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import NamedTuple
+from typing import NamedTuple, Callable
 import warnings
 from zeep import helpers as zeepHelper
 import requests
@@ -65,7 +65,8 @@ def fetch_url_batch(arg_url_list : list[tuple[str,str]], arg_batch_size = 20):
         result = [(url_content, fetch_batch[idx][0]) for idx, url_content in enumerate(url_contents)] # type: ignore
         yield result
 
-def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_delay : float = 0.0):
+def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_delay : float = 0.0, 
+                          arg_progress_callback: Callable[[int,int],None] = None): # type: ignore
 
     results = {}
     with warnings.catch_warnings():
@@ -80,11 +81,15 @@ def delay_fetch_url_batch(arg_url_dict : dict, arg_batch_size: int = 20,  arg_de
                 task_to_url_ref.update({task:url_ref})
 
             # wait for all tasks to finish
-            for idx, task in enumerate(task_to_url_ref):
+            for task_idx, task in enumerate(task_to_url_ref,1):
                 task_result = task.result() # wait for this task to finish
                 url_ref = task_to_url_ref[task]
                 #print(f'fetched the url with ref={url_ref}')
                 results.update({url_ref : task_result})
+                
+                # if defined calling the progress_callback
+                if arg_progress_callback is not None:
+                    arg_progress_callback(task_idx,task_nbr)
     
     return results
 
