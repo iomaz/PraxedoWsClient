@@ -1,9 +1,9 @@
 from typing import NamedTuple
 from requests import Session
 from requests.auth import HTTPBasicAuth
-from zeep import Client
+from zeep import Client, xsd
 from zeep.transports import Transport
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 import warnings
 
@@ -444,5 +444,105 @@ class PraxedoSoapClient:
         return total_entities
     
     
+    class CREATE_WO_RESULT_OPTION(NamedTuple):
+
+        class OPTIONS(NamedTuple):
+            prefix = 'businessEvent.populate.'
+            COREDATA_1     = f'{prefix}coreData'
+            QUALIDATA_1    = f'{prefix}qualificationData'
+            SCHEDUDATA_1   = f'{prefix}schedulingData'
+            COMPLDATA_1    = f'{prefix}completionData.lifeCycleDate'
+            COMPLDATA_2    = f'{prefix}completionData.fields'
+            COMPLDATA_3    = f'{prefix}completionData.excludeBinaryData' 
+            
+
+        BASIC   = [ {'key': OPTIONS.COREDATA_1},
+                    {'key': OPTIONS.QUALIDATA_1},
+                    {'key': OPTIONS.SCHEDUDATA_1},
+                    {'key': OPTIONS.COMPLDATA_1}
+                 ]
+        
+        EXTENDED = BASIC.copy() + [
+                    {'key': OPTIONS.COMPLDATA_2},
+                    {'key': OPTIONS.COMPLDATA_3}
+                                  ]
     
-    
+    def create_work_order(self,evt_type:str, populate_opt = CREATE_WO_RESULT_OPTION.BASIC):
+        
+        date_now = datetime.now()
+        
+        LOCATION_DATA = {
+                            "name"          : "NAME",
+                            "address"       : "ADDRESS",
+                            "city"          : "CITY",
+                            "zipCode"       : "ZIP_CODE",
+                            "contact"       : "CONTACT",
+                            "description"   : "DESCRIPTION",
+                            "geolocation"   : {"latitude": 0.0 ,"longitude": 0.0 }
+                        }
+        
+        
+        ExternalReferentialData = self.ws_client.get_type("{http://ws.praxedo.com/v6/businessEvent}externalReferentialData")
+
+        external_referential_data = ExternalReferentialData(
+                                                        customerName = "test_client",
+                                                        equipmentName = None,
+                                                        location = LOCATION_DATA
+                                                        ) # type: ignore
+
+        
+        #REFERENTIAL_DATA = {
+        #                       "customerName"   : "test_client",
+        #                       "equipmentName"  : None,
+        #                       "location"       : None
+        #                    }
+        
+        CORE_DATA = {
+                        "organizationalUnitId"  : "1008",
+                        "creationDate"          : None,
+                        "earliestDate"          : (date_now + timedelta(days=1)).isoformat(),
+                        "expirationDate"        : (date_now + timedelta(days=2)).isoformat(),
+                        "referentialData"       : external_referential_data,
+                        "parentBusinessEvent"   : None,
+                        "serviceOrder"          : None,
+                        "priority"              : 0,
+                        "description"           : "PraxedoWsClient->SOAP_CLIENT: TEST",
+                        "anomaly"               : "false",
+                        "contacts"              : []
+                        }
+        
+        QUALIFICATION_DATA = {
+                                "type" : evt_type,
+                                "instructions" : None,
+                                "expectedItems" : None
+                            }
+        
+        SCHEDULING_DATA = {
+                            "appointmentDate"   : "",
+                            "schedulingDate"    : "",
+                            "useSchedulingHour" : "",
+                            "schedulingEndDate" : "",
+                            "agentId"           : "",
+                            "teamMates"         : [],
+                            "machine"           : []
+                            }
+        
+        
+        ARG_BUSINESS_EVENT = { 
+                        "id"                    : None,
+                        "status"                : None,
+                        "coreData"              : CORE_DATA,
+                        "qualificationData "    : QUALIFICATION_DATA,
+                        "schedulingData"        : None,
+                        "completionData"        : None,
+                        "contractData"          : None,
+                        "message"               : None,
+                        "orderingCustomer"      : None
+                        }
+        
+        
+        ARG_OPTIONS = None
+        ARG_ORDERING_CUSTOMER = ""
+        
+        create_events_result = self.ws_client.service.createEvents([ARG_BUSINESS_EVENT],ARG_OPTIONS)
+        return create_events_result
