@@ -63,7 +63,7 @@ class PraxedoSoapClient:
             self.ws_attach_client  = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport)
             
             # creating an extra attachment client if a second credential is given
-            # this is way to double the maximum call rate by using two clients in paralel
+            # this is way to double the maximum call rate by using two clients in parallel
             self.double_sessions_attach = False
             if self.ws_credential2 :
                 self.double_sessions_attach = True
@@ -78,7 +78,7 @@ class PraxedoSoapClient:
     
     def close_session(self):
         self.http_session.close()
-        if self.http_session2 : 
+        if self.double_sessions_attach : 
             self.http_session2.close()
         
     
@@ -485,18 +485,11 @@ class PraxedoSoapClient:
         ExternalReferentialData = self.ws_client.get_type("{http://ws.praxedo.com/v6/businessEvent}externalReferentialData")
 
         external_referential_data = ExternalReferentialData(
-                                                        customerName = "test_client",
-                                                        equipmentName = None,
-                                                        location = LOCATION_DATA
+                                                        customerName    = "test_client",
+                                                        equipmentName   = None,
+                                                        location        = LOCATION_DATA
                                                         ) # type: ignore
 
-        
-        #REFERENTIAL_DATA = {
-        #                       "customerName"   : "test_client",
-        #                       "equipmentName"  : None,
-        #                       "location"       : None
-        #                    }
-        
         CORE_DATA = {
                         "organizationalUnitId"  : "1008",
                         "creationDate"          : None,
@@ -511,28 +504,24 @@ class PraxedoSoapClient:
                         "contacts"              : []
                         }
         
+        BUSINESS_EVENT_TYPE = {
+                                "id"        : evt_type,
+                                "duration"  : 30,
+                                "skills"    : []
+                                }
+        
+        
         QUALIFICATION_DATA = {
-                                "type" : evt_type,
-                                "instructions" : None,
-                                "expectedItems" : None
+                                "type"          : BUSINESS_EVENT_TYPE,
+                                "instructions"  : [],
+                                "expectedItems" : []
                             }
-        
-        SCHEDULING_DATA = {
-                            "appointmentDate"   : "",
-                            "schedulingDate"    : "",
-                            "useSchedulingHour" : "",
-                            "schedulingEndDate" : "",
-                            "agentId"           : "",
-                            "teamMates"         : [],
-                            "machine"           : []
-                            }
-        
         
         ARG_BUSINESS_EVENT = { 
                         "id"                    : None,
                         "status"                : None,
                         "coreData"              : CORE_DATA,
-                        "qualificationData "    : QUALIFICATION_DATA,
+                        "qualificationData"     : QUALIFICATION_DATA,
                         "schedulingData"        : None,
                         "completionData"        : None,
                         "contractData"          : None,
@@ -542,7 +531,6 @@ class PraxedoSoapClient:
         
         
         ARG_OPTIONS = None
-        ARG_ORDERING_CUSTOMER = ""
-        
+    
         create_events_result = self.ws_client.service.createEvents([ARG_BUSINESS_EVENT],ARG_OPTIONS)
         return create_events_result
