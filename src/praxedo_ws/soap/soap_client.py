@@ -444,30 +444,27 @@ class PraxedoSoapClient:
         return total_entities
     
     
-    class CREATE_WO_RESULT_OPTION(NamedTuple):
-
-        class OPTIONS(NamedTuple):
-            prefix = 'businessEvent.populate.'
-            COREDATA_1     = f'{prefix}coreData'
-            QUALIDATA_1    = f'{prefix}qualificationData'
-            SCHEDUDATA_1   = f'{prefix}schedulingData'
-            COMPLDATA_1    = f'{prefix}completionData.lifeCycleDate'
-            COMPLDATA_2    = f'{prefix}completionData.fields'
-            COMPLDATA_3    = f'{prefix}completionData.excludeBinaryData' 
-            
-
-        BASIC   = [ {'key': OPTIONS.COREDATA_1},
-                    {'key': OPTIONS.QUALIDATA_1},
-                    {'key': OPTIONS.SCHEDUDATA_1},
-                    {'key': OPTIONS.COMPLDATA_1}
-                 ]
+    class CREATE_WO_RETURN_CODE(Enum):    
+        SUCESS                          = 0 
+        UNKNOWN_ORG                     = 12
+        NULL_BIZEVT_ARG                 = 52
+        MISSING_CORE_DATA               = 100
+        INCOMPLETE_CORE_DATA            = 101
+        BIZEVT_ID_ALREADY_EXISTS        = 102
+        WARN_UNKNOWN_REPORT_FIELD_ID    = 103
+        WARN_INVALID_ITEM               = 104
+        UNKNOWN_CUST_ID                 = 105
+        UNKNOWN_PRAX_LOC_ID             = 106
+        UNKNOWN_EQUIPMENT               = 107
+        UNKNOWN_AGENT                   = 108
+        CORE_REF_DATA_NULL              = 109
+        QUALIFICATION_DATA_NULL         = 110
+        UNKNOWN_PARENT_BIZEVT           = 111
+        UNKNOWN_CORE_DATA_SEREVT        = 112
+        UNKNOWN_BIZEVT_TYPE_ID          = 113
         
-        EXTENDED = BASIC.copy() + [
-                    {'key': OPTIONS.COMPLDATA_2},
-                    {'key': OPTIONS.COMPLDATA_3}
-                                  ]
     
-    def create_work_order(self,evt_type:str, populate_opt = CREATE_WO_RESULT_OPTION.BASIC):
+    def create_work_order(self,evt_type:str):
         
         date_now = datetime.now()
         
@@ -491,7 +488,7 @@ class PraxedoSoapClient:
                                                         ) # type: ignore
 
         CORE_DATA = {
-                        "organizationalUnitId"  : "1008",
+                        "organizationalUnitId"  : None,
                         "creationDate"          : None,
                         "earliestDate"          : (date_now + timedelta(days=1)).isoformat(),
                         "expirationDate"        : (date_now + timedelta(days=2)).isoformat(),
