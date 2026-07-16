@@ -245,7 +245,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # creating the table by copying the work order "id"
     df_wo_report = pd.DataFrame(columns=[WO_REPORT.WO_ID_COL, WO_REPORT.URL_COL, WO_REPORT.FIELDS_COL])
-    df_wo_report[WO_REPORT.WO_ID_COL] = df_wo_core[[WO_CORE_NATIVE.ID_COL]].copy() # copy the 'id" column fron the wo_core to the wo_report
+    df_wo_report[WO_REPORT.WO_ID_COL] = df_wo_core[[WO_CORE_EXTRA.WO_ID_COL]].copy() # copy the 'id" column fron the wo_core to the wo_report
 
     # build the report url out of the uuid and base url
     df_wo_report[WO_REPORT.URL_COL] = df_wo_core[WO_CORE_EXTRA.UUID_COL].map(lambda uuid : f'{arg_base_url}/rest/api/v1/workOrder/uuid:{uuid}/render' )
