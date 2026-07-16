@@ -193,7 +193,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # ------------------- Building wo_core dataframe ------------------------------------------------------------------------------
 
     # reordering columns position
-    df_wo_core.rename(columns={ WO_CORE_NATIVE.ID_COL : WO_CORE_EXTRA.WO_ID_COL} ) # renaming 'id' into 'wo_id' 
+    df_wo_core.rename(columns={ WO_CORE_NATIVE.ID_COL : WO_CORE_EXTRA.WO_ID_COL}, inplace=True ) # renaming 'id' into 'wo_id' 
     pop_reindex(df_wo_core, WO_CORE_EXTRA.WO_ID_COL, 0)
     pop_reindex(df_wo_core, WO_CORE_NATIVE.QDATA_TYPE, 1)
     pop_reindex(df_wo_core, WO_CORE_NATIVE.STATUS_COL, 2)
