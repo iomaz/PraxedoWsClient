@@ -124,6 +124,7 @@ class WO_CORE_NATIVE(NamedTuple):
     QDATA_TYPE      = 'qualificationData.type.id'
 
 class WO_CORE_EXTRA(NamedTuple) :
+    WO_ID_COL       = 'wo_id'
     UUID_COL        = 'uuid'
     UUID_PROP       = 'businessEvent.extension.uuid'
     LOC_NAME_COL    = 'coreData.referentialData.location.name'
@@ -141,7 +142,7 @@ class WO_CORE_LIFCY_DATES_COL(Enum):
     LAST_MODI    = 'lastModificationDate' 
 
 class WO_REPORT(NamedTuple) :
-    ID_COL        = 'wo_id'
+    WO_ID_COL     = 'wo_id'
     URL_COL       = 'wo_report_url'
     FIELDS_COL    = 'wo_report_fields'
 
@@ -191,8 +192,9 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
     # ------------------- Building wo_core dataframe ------------------------------------------------------------------------------
 
-    # reordering the native schema by placing some core information first
-    pop_reindex(df_wo_core, WO_CORE_NATIVE.ID_COL, 0)
+    # reordering columns position
+    df_wo_core.rename(columns={ WO_CORE_NATIVE.ID_COL : WO_CORE_EXTRA.WO_ID_COL}, inplace=True ) # renaming 'id' into 'wo_id' 
+    pop_reindex(df_wo_core, WO_CORE_EXTRA.WO_ID_COL, 0)
     pop_reindex(df_wo_core, WO_CORE_NATIVE.QDATA_TYPE, 1)
     pop_reindex(df_wo_core, WO_CORE_NATIVE.STATUS_COL, 2)
     pop_reindex(df_wo_core, WO_CORE_NATIVE.CREA_DATE_COL, 3)
@@ -242,8 +244,8 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     # ------------------- Building wo_report dataframe ---------------------------------------------------------------------------------------------
 
     # creating the table by copying the work order "id"
-    df_wo_report = pd.DataFrame(columns=[WO_REPORT.ID_COL, WO_REPORT.URL_COL, WO_REPORT.FIELDS_COL])
-    df_wo_report[WO_REPORT.ID_COL] = df_wo_core[[WO_CORE_NATIVE.ID_COL]].copy() # copy the 'id" column fron the wo_core to the wo_report
+    df_wo_report = pd.DataFrame(columns=[WO_REPORT.WO_ID_COL, WO_REPORT.URL_COL, WO_REPORT.FIELDS_COL])
+    df_wo_report[WO_REPORT.WO_ID_COL] = df_wo_core[[WO_CORE_EXTRA.WO_ID_COL]].copy() # copy the 'id" column fron the wo_core to the wo_report
 
     # build the report url out of the uuid and base url
     df_wo_report[WO_REPORT.URL_COL] = df_wo_core[WO_CORE_EXTRA.UUID_COL].map(lambda uuid : f'{arg_base_url}/rest/api/v1/workOrder/uuid:{uuid}/render' )
@@ -272,7 +274,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
         for img_field in std_img_fields :
             field_id = img_field['id'] # type: ignore
             img_url  = img_field['value'] # type: ignore
-            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT.ID_COL], field_id, img_url]
+            df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT.WO_ID_COL], field_id, img_url]
 
         # looking for table imbedded image fields
         table_img_fields = jsonpath.findall(f"$..[?(@.rows[?(@.cells[?({image_condition_path})])])]",wo_report_row[WO_REPORT.FIELDS_COL])
@@ -292,7 +294,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
 
                 field_id = f'{table_id}.{cell_id}_{id_count[cell_id]}' # type: ignore
                 img_url = img_cell['value'] # type: ignore
-                df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT.ID_COL], field_id, img_url]
+                df_wo_report_imgs.loc[len(df_wo_report_imgs)] =  [wo_report_row[WO_REPORT.WO_ID_COL], field_id, img_url]
 
     #print('*** wo_report_imgs ****')
     #print(df_wo_report_imgs)
