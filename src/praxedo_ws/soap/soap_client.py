@@ -486,6 +486,14 @@ class PraxedoSoapClient:
                                                         equipmentName   = None,
                                                         location        = LOCATION_DATA
                                                         ) # type: ignore
+        
+        ReportField = self.ws_client.get_type("{http://ws.praxedo.com/v6/businessEvent}reportField")
+        report_element = ReportField (
+                                            id    = 'CODE_Processus',
+                                            value = 'CODE_Processus as instruction',
+                                        ) # type: ignore
+        
+        
 
         CORE_DATA = {
                         "organizationalUnitId"  : None,
@@ -510,7 +518,7 @@ class PraxedoSoapClient:
         
         QUALIFICATION_DATA = {
                                 "type"          : BUSINESS_EVENT_TYPE,
-                                "instructions"  : [],
+                                "instructions"  : [report_element],
                                 "expectedItems" : []
                             }
         
