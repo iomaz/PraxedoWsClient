@@ -12,8 +12,13 @@ from praxedo_ws.soap import PraxedoSoapClient
 
 
 # Praxedo Qual credential
-QUAL_USER = PraxedoSoapClient.UserCredential(usr='qua.webservice',
+QUAL_USER1 = PraxedoSoapClient.UserCredential(usr='qua.webservice',
                                                 psw='#Qua.webservice-1/*')
+
+
+QUAL_USER2 = PraxedoSoapClient.UserCredential(usr='qua.webservice2',
+                                           psw='#Qua.webservice-2/*')
+
 
 PROD_USER = PraxedoSoapClient.UserCredential(usr='WSDEM',
                                                 psw='WsdemWsdem2358')
@@ -29,7 +34,7 @@ if __name__ == "__main__":
     praxWsClient = PraxedoSoapClient()
     
     # opening a connection
-    praxWsClient.open_session(QUAL_USER)
+    praxWsClient.open_session(QUAL_USER1, QUAL_USER2)
 
 
     result = praxWsClient.create_work_order('ZP27')
