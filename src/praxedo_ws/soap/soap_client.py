@@ -108,7 +108,11 @@ class PraxedoSoapClient:
 
     
     # if not completion date is found and the status is "COMPLETED" or "VALIDATED" then the real status is "CANCELLED"
-    def search_and_set_cancel_status(self, entities_list:list):
+    def process_wo_cancel_status(self, entities_list:list):
+        '''
+        The Praxedo web service return data does not handle correctly the "CANCELLED" status.
+        Work orders with no "completionDate" defined with a "COMPLETED" or "VALIDATED" status are actually "CANCELLED"
+        '''
         STATUS = PraxedoSoapClient.WORK_ORDER_STATUS
         for biz_evt in entities_list:
             comp_date = False
@@ -258,7 +262,7 @@ class PraxedoSoapClient:
         
         if result_code.value > 0 : raise Exception(f'get_work_orders() returned an error : {result_code.name}')
 
-        self.search_and_set_cancel_status(get_evt_results.entities)
+        self.process_wo_cancel_status(get_evt_results.entities)
 
         return get_evt_results.entities
     
@@ -363,14 +367,16 @@ class PraxedoSoapClient:
             return_code = RETURN_CODE(search_results.resultCode)
             match return_code : 
                 case RETURN_CODE.SUCESS :
-                    self.search_and_set_cancel_status(search_results.entities)
-                    yield search_results.entities
+                    self.process_wo_cancel_status(search_results.entities)
+                    data_sync_date = datetime.now().isoformat(timespec='seconds')
+                    yield (search_results.entities, data_sync_date)
                     return
                 
                 case RETURN_CODE.PARTIAL_RESULT :
                     first_result_idx += MAX_PAGE_SIZE # incrementing the first index for a multipage result 
-                    self.search_and_set_cancel_status(search_results.entities)
-                    yield search_results.entities   
+                    self.process_wo_cancel_status(search_results.entities)
+                    data_sync_date = datetime.now().isoformat(timespec='seconds')
+                    yield (search_results.entities, data_sync_date)   
                 
                 case _: # in every other cases = error
                     raise Exception(f'search_work_orders_per_page: service returned an error: {return_code.name}',return_code)
@@ -440,7 +446,7 @@ class PraxedoSoapClient:
                     print(f'search_work_orders: service returned an error: {return_code.name} ')
                     break
         
-        self.search_and_set_cancel_status(search_results.entities)
+        self.process_wo_cancel_status(search_results.entities)
 
         return total_entities
     

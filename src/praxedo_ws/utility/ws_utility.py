@@ -124,6 +124,7 @@ class WO_CORE_NATIVE(NamedTuple):
     QDATA_TYPE      = 'qualificationData.type.id'
 
 class WO_CORE_EXTRA(NamedTuple) :
+    DATA_SYNC_DATE  = 'data_sync_date'
     WO_ID_COL       = 'wo_id'
     UUID_COL        = 'uuid'
     UUID_PROP       = 'businessEvent.extension.uuid'
@@ -156,7 +157,9 @@ class NormalizedWoFrames(NamedTuple):
     wo_report       : pd.DataFrame
     wo_report_imgs  : pd.DataFrame
 
-def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE_URL) -> NormalizedWoFrames :
+def normalize_ws_response(arg_wo_entities_list:list[object], 
+                          arg_data_sync_date = datetime.now().isoformat(timespec='secons'),
+                          arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE_URL) -> NormalizedWoFrames :
     '''
     The function basically normalize a raw Praxedo SOAP web service response to get a convinient schema that separate work order and work order report information
     The returned result is a "normalized model" with 3x frames (tables)
@@ -186,18 +189,20 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     del arg_wo_entities_list
 
     # building a data frame by normalizing the list of wo object 
-    # level = 2 is enough to get enough useful columns
+    # level = 2 is deep enough to get all useful columns
     df_wo_core = pd.json_normalize(pyObj_entities,max_level=2) # type: ignore
 
 
     # ------------------- Building wo_core dataframe ------------------------------------------------------------------------------
+    # adding the data_sync_tag column
+    df_wo_core.insert(0,WO_CORE_EXTRA.DATA_SYNC_DATE,arg_data_sync_date)
 
     # reordering columns position
     df_wo_core.rename(columns={ WO_CORE_NATIVE.ID_COL : WO_CORE_EXTRA.WO_ID_COL}, inplace=True ) # renaming 'id' into 'wo_id' 
-    pop_reindex(df_wo_core, WO_CORE_EXTRA.WO_ID_COL, 0)
-    pop_reindex(df_wo_core, WO_CORE_NATIVE.QDATA_TYPE, 1)
-    pop_reindex(df_wo_core, WO_CORE_NATIVE.STATUS_COL, 2)
-    pop_reindex(df_wo_core, WO_CORE_NATIVE.CREA_DATE_COL, 3)
+    pop_reindex(df_wo_core, WO_CORE_EXTRA.WO_ID_COL, 1)
+    pop_reindex(df_wo_core, WO_CORE_NATIVE.QDATA_TYPE, 2)
+    pop_reindex(df_wo_core, WO_CORE_NATIVE.STATUS_COL, 3)
+    pop_reindex(df_wo_core, WO_CORE_NATIVE.CREA_DATE_COL, 4)
 
     # creating the location.name column by extracting the value from the "coreData:referentialData.location.name" column
     df_location_name = df_wo_core[WO_CORE_NATIVE.LOCATION_COL].map(lambda loc_val : loc_val['name'] if loc_val else None )
