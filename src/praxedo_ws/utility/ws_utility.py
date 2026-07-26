@@ -194,7 +194,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],
 
 
     # ------------------- Building wo_core dataframe ------------------------------------------------------------------------------
-    # adding the data_sync_tag column
+    # adding the data_sync_date column
     df_wo_core.insert(0,WO_CORE_EXTRA.DATA_SYNC_DATE,arg_data_sync_date)
 
     # reordering columns position
@@ -228,7 +228,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],
     df_wo_core.drop(columns=[WO_CORE_NATIVE.LIFCY_DATES_COL],inplace=True)
 
     # convert every "date" dolumns into ISO 8601 strings (also removing the useless [ms]/[us] component if any)
-    for col_name in [col_name for col_name in df_wo_core.columns if col_name.lower().endswith('date') ] :
+    for col_name in [col_name for col_name in df_wo_core.columns[1:] if col_name.lower().endswith('date') ] :
         df_wo_core[col_name] = df_wo_core[col_name].map(lambda date_obj : date_obj.isoformat(timespec='seconds') if isinstance(date_obj,datetime) else None )
 
     #print('*** wo_core ****')
