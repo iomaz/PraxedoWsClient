@@ -11,9 +11,10 @@ import warnings
 class PraxedoSoapClient:
      
     class DEFAULTS_URL(NamedTuple):
-        BASE            = 'https://eu6.praxedo.com/eTech'
-        BIZ_EVT         = f'{BASE}/services/cxf/v6.1/BusinessEventManager?wsdl'
-        BIZ_EVT_ATTACH  = f'{BASE}/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
+        SRV_NODE        = 'eu6'
+        BASE_URL        = f'https://{SRV_NODE}.praxedo.com/eTech'
+        BIZ_EVT         = f'{BASE_URL}/services/cxf/v6.1/BusinessEventManager?wsdl'
+        BIZ_EVT_ATTACH  = f'{BASE_URL}/services/cxf/v6/BusinessEventAttachmentManager?wsdl'
 
     class UserCredential(NamedTuple):
         usr : str

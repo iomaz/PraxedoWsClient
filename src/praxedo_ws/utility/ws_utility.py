@@ -156,7 +156,7 @@ class NormalizedWoFrames(NamedTuple):
     wo_report       : pd.DataFrame
     wo_report_imgs  : pd.DataFrame
 
-def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE) -> NormalizedWoFrames :
+def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE_URL) -> NormalizedWoFrames :
     '''
     The function basically normalize a raw Praxedo SOAP web service response to get a convinient schema that separate work order and work order report information
     The returned result is a "normalized model" with 3x frames (tables)
