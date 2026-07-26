@@ -158,7 +158,7 @@ class NormalizedWoFrames(NamedTuple):
     wo_report_imgs  : pd.DataFrame
 
 def normalize_ws_response(arg_wo_entities_list:list[object], 
-                          arg_data_sync_date = datetime.now().isoformat(timespec='secons'),
+                          arg_data_sync_date = datetime.now().isoformat(timespec='seconds'),
                           arg_base_url = PraxedoSoapClient.DEFAULTS_URL.BASE_URL) -> NormalizedWoFrames :
     '''
     The function basically normalize a raw Praxedo SOAP web service response to get a convinient schema that separate work order and work order report information
