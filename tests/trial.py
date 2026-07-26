@@ -4,14 +4,12 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 #-----------------------------------------------------------------------------
 
-from pprint import pprint
-
-# local imports
-from praxedo_ws.soap_client.soap_client import PraxedoSoapClient
+from datetime import datetime
 
 if __name__ == "__main__":
     print('program start')
     
-    print(PraxedoSoapClient.GET_BIZEVT_RESULT_CODE.SUCCESS.name)
+    curr_date_str = datetime.now().isoformat(timespec='seconds')
+    print(f'current date = {curr_date_str}')
     
     print('program end')

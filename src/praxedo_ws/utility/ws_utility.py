@@ -163,7 +163,7 @@ def normalize_ws_response(arg_wo_entities_list:list[object],arg_base_url = Praxe
     It keeps all native information wihout dropping or loading any extra stuff
 
     Input / argument
-    :param ws_result_entities: a list of wo as it is returned by the web service (getResult / searchResult)
+    :param ws_result_entities: a list of business events objects as it is returned by the web service (getResult / searchResult)
     
    result: produce a json value frame of the work oders and 2x extra frames to store report and report images
     - wo_core : This is the reference/fact table wich contains core work order informations without the report fields
