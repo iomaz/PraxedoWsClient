@@ -7,8 +7,12 @@ from datetime import datetime, timedelta
 from enum import Enum
 import warnings
 
+# local import
+from ws_rate_monitor import WsRateMonitor
 
 class PraxedoSoapClient:
+     
+    MAX_HOUR_RATE_LIMIT = 2000
      
     class DEFAULTS_URL(NamedTuple):
         SRV_NODE        = 'eu6'
@@ -30,6 +34,7 @@ class PraxedoSoapClient:
         self.http_session           : Session
         self.ws_tranport            : Transport
         self.ws_client              : Client # zeep client for soap web service
+        self.ws_client_rate_mon     : WsRateMonitor
         self.ws_attach_transport    : Transport
         self.ws_attach_client       : Client # zeep client for business event attachement management
         
@@ -61,6 +66,7 @@ class PraxedoSoapClient:
             self.ws_attach_transport    = Transport(session = self.http_session)
                 
             self.ws_client         = Client(wsdl = self.biz_evt_wsdl_url,    transport = self.ws_tranport)
+            self.ws_client_rate_mon = WsRateMonitor(self.MAX_HOUR_RATE_LIMIT)
             self.ws_attach_client  = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport)
             
             # creating an extra attachment client if a second credential is given
@@ -75,6 +81,13 @@ class PraxedoSoapClient:
                 self.ws_attach_transport2    = Transport(session = self.http_session2)
                 self.ws_attach_client2       = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport2)
                 self.ws_attach_get_list_sequence_no = 0
+    
+    
+    def compute_rate(self):
+        return self.ws_client_rate_mon.compute_hour_rate()
+    
+    def reset_rate_moni(self):
+        self.ws_client_rate_mon.clear()    
     
     
     def close_session(self):
@@ -362,6 +375,7 @@ class PraxedoSoapClient:
             
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
+                self.ws_client_rate_mon.sig_call()
                 search_results = self.ws_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
             
             return_code = RETURN_CODE(search_results.resultCode)
@@ -490,7 +504,7 @@ class PraxedoSoapClient:
 
         external_referential_data = ExternalReferentialData(
                                                         customerName    = "test_client",
-                                                        equipmentName   = None,
+                                                        equipmentName   = "12345",
                                                         location        = LOCATION_DATA
                                                         ) # type: ignore
         
