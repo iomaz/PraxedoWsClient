@@ -5,6 +5,8 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 #-----------------------------------------------------------------------------
 
+import time
+
 from enum import Enum
 from pprint import pprint
 
@@ -42,9 +44,10 @@ if __name__ == "__main__":
     EXTENDED_RESULT = PraxedoSoapClient.SRCH_WO_RESULT_OPTION.EXTENDED
 
     for countIdx in range(0,100) :
-        curr_rate = praxWsClient.count_hour_call() 
-        print(f'current rate = {curr_rate}')
+        total_hour_evts, estimate_rate = praxWsClient.count_hour_calls() 
+        print(f'Rate monitor : (total_events, estimate_rate) :  ({total_hour_evts},{estimate_rate})')
         result = praxWsClient.search_work_orders(COMPLETION_DATE,srch_from, srch_to,EXTENDED_RESULT)  # type: ignore
+        time.sleep(1.1)
 
     # printing the result
     pprint(f'total wo nbr = {len(result)}')

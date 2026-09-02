@@ -10,7 +10,7 @@ from collections import deque
 
 class PraxedoSoapClient:
      
-    MAX_HOUR_RATE_LIMIT = 2000
+    WS_MAX_HOUR_RATE_LIMIT = 2000
      
     class DEFAULTS_URL(NamedTuple):
         SRV_NODE        = 'eu6'
@@ -23,10 +23,10 @@ class PraxedoSoapClient:
         psw : str
 
     class WsRateMonitor :
-    
+        
         def __init__(self, arg_max_hour_rate) :
-            self.call_events = deque(maxlen = arg_max_hour_rate +1)
-            self.one_hour = timedelta(hours = 1)        
+            self.call_events    = deque(maxlen = arg_max_hour_rate +1)
+            self.one_hour       = timedelta(hours = 1)        
 
         def add_call(self) :
             self.call_events.append(datetime.now())
@@ -34,23 +34,29 @@ class PraxedoSoapClient:
         def clear(self):
             self.call_events.clear()
             
-        def count_hour_call(self) :
+        def count_hour_calls(self) :
             
-            now = datetime.now()
+            if len(self.call_events) > 0 :
+                time_now = datetime.now()
 
-            refIdx = 0
-            # searching all event in the 1 hour window
-            for evtIdx, callEvt in enumerate(self.call_events) :
-                evt_age = (now - callEvt) / self.one_hour
-                if evt_age <= 1 :
-                    refIdx = evtIdx
-                    break
+                # searching all event in the 1 hour window
+                for evtIdx, callEvt in enumerate(self.call_events) :
+                    evt_age = (time_now - callEvt) / self.one_hour
+                    if evt_age <= 1 :
+                        break
+                
+                total_evts = len(self.call_events) - evtIdx
+                
+                total_duration  = (time_now - self.call_events[evtIdx]).total_seconds()
+                extrapolate     = (total_evts / total_duration) * 3600
+                
+                return (total_evts, round(extrapolate) ) 
             
-            return len(self.call_events) - refIdx
+            else : return (0,0)
 
 
-    def count_hour_call(self):
-            return self.ws_client_rate_mon.count_hour_call()
+    def count_hour_calls(self):
+            return self.ws_client_rate_mon.count_hour_calls()
         
     def reset_rate_moni(self):
         self.ws_client_rate_mon.clear()  
@@ -98,7 +104,7 @@ class PraxedoSoapClient:
             self.ws_attach_transport    = Transport(session = self.http_session)
                 
             self.ws_client         = Client(wsdl = self.biz_evt_wsdl_url,    transport = self.ws_tranport)
-            self.ws_client_rate_mon = PraxedoSoapClient.WsRateMonitor(self.MAX_HOUR_RATE_LIMIT)
+            self.ws_client_rate_mon = PraxedoSoapClient.WsRateMonitor(self.WS_MAX_HOUR_RATE_LIMIT)
             self.ws_attach_client  = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport)
             
             # creating an extra attachment client if a second credential is given
