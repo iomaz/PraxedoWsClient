@@ -6,9 +6,7 @@ from zeep.transports import Transport
 from datetime import datetime, timedelta
 from enum import Enum
 import warnings
-
-# local import
-from ws_rate_monitor import WsRateMonitor
+from collections import deque
 
 class PraxedoSoapClient:
      
@@ -23,6 +21,40 @@ class PraxedoSoapClient:
     class UserCredential(NamedTuple):
         usr : str
         psw : str
+
+    class WsRateMonitor :
+    
+        def __init__(self, arg_max_hour_rate) :
+            self.call_events = deque(maxlen = arg_max_hour_rate +1)
+            self.one_hour = timedelta(hours = 1)        
+
+        def add_call(self) :
+            self.call_events.append(datetime.now())
+        
+        def clear(self):
+            self.call_events.clear()
+            
+        def count_hour_call(self) :
+            
+            now = datetime.now()
+
+            refIdx = 0
+            # searching all event in the 1 hour window
+            for evtIdx, callEvt in enumerate(self.call_events) :
+                evt_age = (now - callEvt) / self.one_hour
+                if evt_age <= 1 :
+                    refIdx = evtIdx
+                    break
+            
+            return len(self.call_events) - refIdx
+
+
+    def count_hour_call(self):
+            return self.ws_client_rate_mon.count_hour_call()
+        
+    def reset_rate_moni(self):
+        self.ws_client_rate_mon.clear()  
+
      
     def __init__(self,  biz_evt_wsdl_url:str    = DEFAULTS_URL.BIZ_EVT,
                         biz_attach_wsdl_url:str = DEFAULTS_URL.BIZ_EVT_ATTACH):
@@ -34,7 +66,7 @@ class PraxedoSoapClient:
         self.http_session           : Session
         self.ws_tranport            : Transport
         self.ws_client              : Client # zeep client for soap web service
-        self.ws_client_rate_mon     : WsRateMonitor
+        self.ws_client_rate_mon     : PraxedoSoapClient.WsRateMonitor
         self.ws_attach_transport    : Transport
         self.ws_attach_client       : Client # zeep client for business event attachement management
         
@@ -66,7 +98,7 @@ class PraxedoSoapClient:
             self.ws_attach_transport    = Transport(session = self.http_session)
                 
             self.ws_client         = Client(wsdl = self.biz_evt_wsdl_url,    transport = self.ws_tranport)
-            self.ws_client_rate_mon = WsRateMonitor(self.MAX_HOUR_RATE_LIMIT)
+            self.ws_client_rate_mon = PraxedoSoapClient.WsRateMonitor(self.MAX_HOUR_RATE_LIMIT)
             self.ws_attach_client  = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport)
             
             # creating an extra attachment client if a second credential is given
@@ -81,14 +113,6 @@ class PraxedoSoapClient:
                 self.ws_attach_transport2    = Transport(session = self.http_session2)
                 self.ws_attach_client2       = Client(wsdl = self.biz_attach_wsdl_url, transport = self.ws_attach_transport2)
                 self.ws_attach_get_list_sequence_no = 0
-    
-    
-    def compute_rate(self):
-        return self.ws_client_rate_mon.compute_hour_rate()
-    
-    def reset_rate_moni(self):
-        self.ws_client_rate_mon.clear()    
-    
     
     def close_session(self):
         self.http_session.close()
@@ -375,7 +399,7 @@ class PraxedoSoapClient:
             
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
-                self.ws_client_rate_mon.sig_call()
+                self.ws_client_rate_mon.add_call()
                 search_results = self.ws_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
             
             return_code = RETURN_CODE(search_results.resultCode)
@@ -435,6 +459,7 @@ class PraxedoSoapClient:
                 warnings.simplefilter('ignore')
                
                 print(f'search_work_orders: page {resp_page_nbr}')
+                self.ws_client_rate_mon.add_call()
                 search_results = self.ws_client.service.searchEvents(ws_search_arg,MAX_PAGE_SIZE,first_result_idx,arg_populate_opt)
             
             return_code = RETURN_CODE(search_results.resultCode)

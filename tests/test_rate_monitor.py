@@ -35,13 +35,16 @@ if __name__ == "__main__":
     
     # requesting a bsiness event
     #result = praxWsClient.get_bizEvt(['81215384'])
-    srch_from = datetime.strptime('06/01/26 08:53','%d/%m/%y %H:%M')
-    srch_to   = datetime.strptime('06/01/26 08:54','%d/%m/%y %H:%M')
+    srch_from = datetime.strptime('01/09/26 12:00','%d/%m/%y %H:%M')
+    srch_to   = datetime.strptime('06/09/26 14:00','%d/%m/%y %H:%M')
     
     COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
     EXTENDED_RESULT = PraxedoSoapClient.SRCH_WO_RESULT_OPTION.EXTENDED
 
-    result = praxWsClient.search_work_orders(COMPLETION_DATE,srch_from, srch_to,EXTENDED_RESULT)  # type: ignore
+    for countIdx in range(1,11) :
+        curr_rate = praxWsClient.count_hour_call() 
+        print(f'current rate = {curr_rate}')
+        result = praxWsClient.search_work_orders(COMPLETION_DATE,srch_from, srch_to,EXTENDED_RESULT)  # type: ignore
 
     # printing the result
     pprint(f'total wo nbr = {len(result)}')
