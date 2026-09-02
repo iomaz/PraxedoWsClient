@@ -41,7 +41,7 @@ if __name__ == "__main__":
     COMPLETION_DATE = PraxedoSoapClient.DATE_CONSTRAINT.COMPLETION
     EXTENDED_RESULT = PraxedoSoapClient.SRCH_WO_RESULT_OPTION.EXTENDED
 
-    for countIdx in range(1,11) :
+    for countIdx in range(0,100) :
         curr_rate = praxWsClient.count_hour_call() 
         print(f'current rate = {curr_rate}')
         result = praxWsClient.search_work_orders(COMPLETION_DATE,srch_from, srch_to,EXTENDED_RESULT)  # type: ignore
@@ -49,8 +49,8 @@ if __name__ == "__main__":
     # printing the result
     pprint(f'total wo nbr = {len(result)}')
 
-    pprint('result:')
-    pprint(result)
+    #pprint('result:')
+    #pprint(result)
     
     # closing the connection
     praxWsClient.close_session()
